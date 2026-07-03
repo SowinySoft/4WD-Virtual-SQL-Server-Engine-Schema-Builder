@@ -31,7 +31,7 @@ A standalone Express server implementing the **Virtual SQL Server Engine (VSSE)*
 ├── plugins/
 │   └── README.md
 ├── public/
-│   ├── index.html            # Full SPA — 5 tabs: DDL, QBE, Templates, Validator, About (633 lines)
+│   ├── index.html            # Full SPA — Tree browser, table designer, 4-pane DDL, QBE, ER diagram, build/explain, modals, toasts (1396 lines)
 │   └── fonts/                # Local font files (Inter, JetBrains Mono)
 ├── docs/
 │   ├── VIRTUAL_SQL_SERVER_ENGINE_PAPER.md   # VSSE concept paper
@@ -94,6 +94,7 @@ This is commit 1 — standalone project forked from Hexagon Web Framework v3.14.
 |------|--------|-------------|
 | 2026-07-03 | `initial` | Fork from Hexagon Web Framework: Schema Builder as standalone VSSE project |
 | 2026-07-04 | `refactor-spa` | Major refactor: extracted routes.js from index.js, refactored server.js to 20 lines, full SPA index.html (5 tabs), local fonts, added test/ dir, port 4005, type map expansion |
+| 2026-07-04 | `squash-spa-v2` | Ported 12 features from Hexagon reference: tree browser (localStorage), table designer (FK/PK/UK inline), code editor (VIEW/FUNCTION/PROCEDURE/TRIGGER), 4-pane SQL grid, build/explain output, QBE canvas (tables/joins/conditions/group/order/union/keywords/results), ER diagram (SVG), modals, toasts, import/export SQL, schema/role forms, keyboard shortcuts. index.html: 633→1396 lines. |
 
 ## Deployment (Railway)
 
