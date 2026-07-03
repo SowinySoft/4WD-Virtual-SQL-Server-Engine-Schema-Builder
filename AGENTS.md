@@ -10,18 +10,19 @@ A standalone Express server implementing the **Virtual SQL Server Engine (VSSE)*
 
 ```
 4WD VSSE Schema Builder/
-├── server.js                 # Express 4 server (52 lines, port 4005)
+├── server.js                 # Express 4 server (20 lines, port 4005, mounts lib/routes.js)
 ├── package.json              # Deps: express, pg, mysql2, sql.js, mssql, commander
 ├── railway.json              # Railpack deploy config
 ├── AGENTS.md                 # This file
 ├── README.md
 ├── .gitignore
 ├── .env.example
-├── index.js                  # CLI entry + Express router (733 lines, dual-mode)
+├── index.js                  # CLI entry + module exports (~120 lines, dual-mode)
 ├── config/
-│   ├── default.json          # Engine type mappings and categories
+│   ├── default.json          # Engine type mappings and categories (port 4005)
 │   └── index.js              # Config loader
 ├── lib/
+│   ├── routes.js             # Express router — all API routes (342 lines, extracted from index.js)
 │   ├── designer.js           # Design object factories + validation (307 lines)
 │   ├── translator.js         # Engine dialect rules / type maps (227 lines)
 │   ├── ddl-generator.js      # DDL generation for 7 object types (423 lines)
@@ -30,12 +31,14 @@ A standalone Express server implementing the **Virtual SQL Server Engine (VSSE)*
 ├── plugins/
 │   └── README.md
 ├── public/
-│   └── index.html            # Landing page + SPA
+│   ├── index.html            # Full SPA — 5 tabs: DDL, QBE, Templates, Validator, About (633 lines)
+│   └── fonts/                # Local font files (Inter, JetBrains Mono)
 ├── docs/
 │   ├── VIRTUAL_SQL_SERVER_ENGINE_PAPER.md   # VSSE concept paper
 │   └── VIRTUAL_SQL_SERVER_ENGINE_PAPER.pdf  # Printable PDF
-└── scripts/
-    └── generate-paper-pdf.js # PDF generation from markdown
+├── scripts/
+│   └── generate-paper-pdf.js # PDF generation from markdown
+└── test/                     # Node --test test files
 ```
 
 ## API Routes
@@ -90,6 +93,7 @@ This is commit 1 — standalone project forked from Hexagon Web Framework v3.14.
 | Date | Commit | Description |
 |------|--------|-------------|
 | 2026-07-03 | `initial` | Fork from Hexagon Web Framework: Schema Builder as standalone VSSE project |
+| 2026-07-04 | `refactor-spa` | Major refactor: extracted routes.js from index.js, refactored server.js to 20 lines, full SPA index.html (5 tabs), local fonts, added test/ dir, port 4005, type map expansion |
 
 ## Deployment (Railway)
 

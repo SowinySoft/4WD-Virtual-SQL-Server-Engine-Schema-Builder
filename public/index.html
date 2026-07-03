@@ -4,138 +4,137 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>4WD Virtual SQL Server Engine — Schema Builder</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/fonts/fonts.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: #0a0a1a;
   color: #e2e8f0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
-.container { max-width: 960px; margin: 0 auto; padding: 40px 24px; flex: 1; }
+.container { max-width: 1100px; margin: 0 auto; padding: 24px; flex: 1; width: 100%; }
 
 /* Header */
-header {
-  text-align: center;
-  padding: 60px 0 40px;
-}
+header { text-align: center; padding: 32px 0 24px; }
 .badge {
   display: inline-block;
   background: linear-gradient(135deg, #2563eb, #7c3aed);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  padding: 6px 16px;
-  border-radius: 20px;
-  margin-bottom: 20px;
+  color: #fff; font-size: 11px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 6px 16px; border-radius: 20px; margin-bottom: 16px;
 }
 h1 {
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+  font-size: 32px; font-weight: 800; letter-spacing: -0.5px;
   background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 12px;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin-bottom: 8px;
 }
-.subtitle {
-  font-size: 16px;
-  color: #94a3b8;
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.6;
-}
+.subtitle { font-size: 14px; color: #94a3b8; max-width: 600px; margin: 0 auto; line-height: 1.6; }
 
-/* Feature cards */
-.features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-  margin: 32px 0;
+/* Tabs */
+.tabs { display: flex; gap: 4px; margin: 24px 0; border-bottom: 1px solid rgba(148,163,184,0.15); padding-bottom: 0; }
+.tab {
+  padding: 10px 20px; cursor: pointer; font-size: 13px; font-weight: 500;
+  color: #94a3b8; border: 1px solid transparent; border-bottom: none;
+  border-radius: 8px 8px 0 0; transition: all 0.15s;
+  background: transparent;
 }
-.card {
-  background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.8));
-  border: 1px solid rgba(148,163,184,0.1);
-  border-radius: 12px;
-  padding: 24px;
-  transition: all 0.2s;
-}
-.card:hover {
-  border-color: rgba(96,165,250,0.3);
-  transform: translateY(-2px);
-}
-.card-icon {
-  font-size: 28px;
-  margin-bottom: 12px;
-}
-.card h3 {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #f1f5f9;
-}
-.card p {
-  font-size: 13px;
-  color: #94a3b8;
-  line-height: 1.5;
-}
+.tab:hover { color: #e2e8f0; background: rgba(148,163,184,0.05); }
+.tab.active { color: #60a5fa; background: rgba(96,165,250,0.08); border-color: rgba(96,165,250,0.2); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
 
-/* API endpoints */
-.api-section {
-  margin: 40px 0;
+/* Form elements */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.form-row .form-group { flex: 1; min-width: 120px; }
+input, select, textarea {
+  width: 100%; padding: 8px 12px; font-size: 13px; font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.15);
+  border-radius: 6px; color: #e2e8f0; outline: none; transition: border-color 0.15s;
 }
-.api-section h2 {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: #f1f5f9;
+input:focus, select:focus, textarea:focus { border-color: #60a5fa; }
+select { cursor: pointer; }
+textarea { resize: vertical; min-height: 80px; font-size: 12px; line-height: 1.5; }
+input[type="checkbox"] { width: auto; margin-right: 6px; }
+
+/* Buttons */
+.btn {
+  padding: 8px 20px; font-size: 13px; font-weight: 600; border: none; border-radius: 6px;
+  cursor: pointer; transition: all 0.15s; font-family: 'Inter', system-ui, sans-serif;
 }
-.api-grid {
-  display: grid;
-  gap: 8px;
+.btn-primary { background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+.btn-danger { background: rgba(239,68,68,0.2); color: #ef4444; }
+.btn-danger:hover { background: rgba(239,68,68,0.3); }
+.btn-small { padding: 4px 12px; font-size: 11px; }
+
+/* Output */
+.output {
+  background: rgba(15,23,42,0.9); border: 1px solid rgba(148,163,184,0.12);
+  border-radius: 8px; padding: 16px; margin-top: 16px; overflow-x: auto;
 }
-.api-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(15,23,42,0.6);
-  border: 1px solid rgba(148,163,184,0.08);
-  border-radius: 8px;
-  padding: 10px 16px;
-  font-size: 13px;
-  font-family: 'JetBrains Mono', monospace;
+.output pre {
+  font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 12px; line-height: 1.6; color: #e2e8f0; white-space: pre-wrap;
 }
-.method {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  min-width: 48px;
-  text-align: center;
+.output .engine-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+  color: #60a5fa; margin-top: 12px; margin-bottom: 4px;
 }
-.method.get { background: rgba(34,197,94,0.2); color: #22c55e; }
-.method.post { background: rgba(59,130,246,0.2); color: #3b82f6; }
-.path { color: #e2e8f0; flex: 1; }
-.desc { color: #64748b; font-family: 'Inter', sans-serif; }
+.output .engine-label:first-child { margin-top: 0; }
+
+/* Columns table */
+.cols-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.cols-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; padding: 6px 4px; border-bottom: 1px solid rgba(148,163,184,0.1); font-weight: 600; }
+.cols-table td { padding: 4px; border-bottom: 1px solid rgba(148,163,184,0.06); vertical-align: middle; }
+.cols-table input, .cols-table select { padding: 4px 6px; font-size: 11px; }
+.cols-table .btn { font-size: 10px; padding: 2px 8px; }
+
+/* QBE builder */
+.qbe-section { margin-top: 16px; }
+.qbe-section h3 { font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 8px; }
+.cond-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.cond-row select, .cond-row input { width: auto; min-width: 80px; flex: 1; }
+
+/* Result tabs for multi-engine output */
+.engine-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+.engine-tab {
+  padding: 6px 14px; font-size: 11px; font-weight: 600; cursor: pointer;
+  border-radius: 4px; background: rgba(15,23,42,0.6); color: #94a3b8; border: 1px solid transparent;
+  transition: all 0.15s;
+}
+.engine-tab:hover { color: #e2e8f0; }
+.engine-tab.active { background: rgba(96,165,250,0.12); color: #60a5fa; border-color: rgba(96,165,250,0.2); }
+
+/* Validation result */
+.valid-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+.valid-badge.pass { background: rgba(34,197,94,0.2); color: #22c55e; }
+.valid-badge.fail { background: rgba(239,68,68,0.2); color: #ef4444; }
+.error-list { list-style: none; margin-top: 8px; }
+.error-list li { padding: 6px 10px; background: rgba(239,68,68,0.1); border-radius: 4px; margin-bottom: 4px; font-size: 12px; color: #fca5a5; }
+.msg { font-size: 12px; color: #94a3b8; margin-top: 8px; }
 
 /* Footer */
-footer {
-  text-align: center;
-  padding: 40px 0;
-  color: #475569;
-  font-size: 12px;
-  border-top: 1px solid rgba(148,163,184,0.08);
-}
+footer { text-align: center; padding: 24px 0; color: #475569; font-size: 12px; border-top: 1px solid rgba(148,163,184,0.08); margin-top: 24px; }
 footer a { color: #60a5fa; text-decoration: none; }
+
+/* Spinner */
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(96,165,250,0.2); border-top-color: #60a5fa; border-radius: 50%; animation: spin 0.6s linear infinite; margin-left: 8px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* misc */
+.hint { font-size: 11px; color: #64748b; margin-top: 4px; }
+.flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-8 { margin-bottom: 8px; }
+code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: rgba(148,163,184,0.1); padding: 1px 4px; border-radius: 3px; }
+.cols-table .col-actions { width: 60px; text-align: center; }
 </style>
 </head>
 <body>
@@ -143,72 +142,492 @@ footer a { color: #60a5fa; text-decoration: none; }
   <header>
     <div class="badge">4WD Virtual SQL Server Engine</div>
     <h1>Schema Builder</h1>
-    <p class="subtitle">
-      Design database schemas and build QBE queries entirely offline — no database connection required.
-      Generate DDL for PostgreSQL, MySQL, SQLite, and MSSQL from a single design object.
-    </p>
+    <p class="subtitle">Design schemas, build QBE queries, generate DDL for PostgreSQL, MySQL, SQLite &amp; MSSQL — entirely offline.</p>
   </header>
 
-  <div class="features">
-    <div class="card">
-      <div class="card-icon">🗄️</div>
-      <h3>DDL Generation</h3>
-      <p>Design tables, views, functions, procedures, triggers &amp; roles — generate engine-specific DDL offline.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🔍</div>
-      <h3>QBE Query Builder</h3>
-      <p>Build SELECT/INSERT/UPDATE/DELETE queries from a visual QBE state — joins, WHERE, GROUP BY, ORDER BY, UNION.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🔄</div>
-      <h3>Multi-Engine</h3>
-      <p>Four engines: PostgreSQL, MySQL, SQLite, MSSQL. Design once, output for any dialect — all without a live DB.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">✅</div>
-      <h3>Validation</h3>
-      <p>Structural validation of design objects — missing names, duplicate columns, constraint references.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">📋</div>
-      <h3>Templates</h3>
-      <p>Boilerplate code for views, functions, procedures, and triggers across all four engines.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">⚡</div>
-      <h3>Dry-Run Mode</h3>
-      <p>Preview generated SQL without executing. The Virtual SQL Server Engine pattern — design, validate, deploy.</p>
-    </div>
+  <div class="tabs" id="tabNav">
+    <div class="tab active" data-tab="ddl">DDL Generator</div>
+    <div class="tab" data-tab="qbe">QBE Builder</div>
+    <div class="tab" data-tab="templates">Templates</div>
+    <div class="tab" data-tab="validate">Validator</div>
+    <div class="tab" data-tab="about">About</div>
   </div>
 
-  <div class="api-section">
-    <h2>API Endpoints</h2>
-    <div class="api-grid" id="apiList"></div>
+  <!-- DDL Generator -->
+  <div class="tab-content active" id="tab-ddl">
+    <div class="form-row">
+      <div class="form-group"><label>Object Type</label><select id="ddlObjType"><option>TABLE</option><option>VIEW</option><option>SCHEMA</option><option>FUNCTION</option><option>PROCEDURE</option><option>TRIGGER</option><option>ROLE</option></select></div>
+      <div class="form-group"><label>Name</label><input id="ddlName" placeholder="table_name"></div>
+      <div class="form-group"><label>Schema</label><input id="ddlSchema" value="public"></div>
+    </div>
+
+    <!-- TABLE-specific -->
+    <div id="ddlTableSection">
+      <div class="flex mb-8"><h3 style="font-size:13px;font-weight:600;color:#94a3b8;">Columns</h3><button class="btn btn-primary btn-small" onclick="addColRow()">+ Add Column</button></div>
+      <table class="cols-table" id="colsTable">
+        <thead><tr><th>Name</th><th>Type</th><th>Length</th><th>Nullable</th><th>PK</th><th>AutoInc</th><th>Default</th><th>Unique</th><th></th></tr></thead>
+        <tbody id="colsBody"></tbody>
+      </table>
+
+      <div class="form-group mt-16"><label>Constraints (JSON)</label><textarea id="ddlConstraints" rows="2" placeholder='[{"type":"UNIQUE","columns":["email"],"name":"uq_email"}]'></textarea></div>
+    </div>
+
+    <!-- VIEW-specific -->
+    <div id="ddlViewSection" style="display:none">
+      <div class="form-group"><label>SELECT Query</label><textarea id="ddlViewQuery" rows="4" placeholder="SELECT * FROM your_table WHERE 1=1"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Materialized</label><select id="ddlMaterialized"><option value="false">No</option><option value="true">Yes</option></select></div>
+        <div class="form-group"><label>Check Option</label><select id="ddlCheckOption"><option value="">None</option><option value="LOCAL">LOCAL</option><option value="CASCADED">CASCADED</option></select></div>
+      </div>
+    </div>
+
+    <!-- SCHEMA-specific -->
+    <div id="ddlSchemaSection" style="display:none">
+      <div class="form-group"><label>Owner</label><input id="ddlSchemaOwner" placeholder="owner_name"></div>
+    </div>
+
+    <!-- FUNCTION/PROCEDURE-specific -->
+    <div id="ddlRoutineSection" style="display:none">
+      <div class="form-row">
+        <div class="form-group"><label>Language</label><input id="ddlLanguage" value="plpgsql"></div>
+        <div class="form-group"><label>Return Type</label><input id="ddlReturnType" value="void"></div>
+      </div>
+      <div class="form-group"><label>Parameters (JSON)</label><textarea id="ddlParams" rows="2" placeholder='[{"name":"id","type":"INTEGER"}]'></textarea></div>
+      <div class="form-group"><label>Body</label><textarea id="ddlBody" rows="4" placeholder="BEGIN&#10;  -- logic here&#10;END;"></textarea></div>
+    </div>
+
+    <!-- TRIGGER-specific -->
+    <div id="ddlTriggerSection" style="display:none">
+      <div class="form-row">
+        <div class="form-group"><label>Table Name</label><input id="ddlTrigTable"></div>
+        <div class="form-group"><label>Timing</label><select id="ddlTrigTiming"><option>BEFORE</option><option>AFTER</option><option>INSTEAD OF</option></select></div>
+        <div class="form-group"><label>Event</label><select id="ddlTrigEvent"><option>INSERT</option><option>UPDATE</option><option>DELETE</option><option>TRUNCATE</option></select></div>
+      </div>
+      <div class="form-group"><label>Trigger Body / Function</label><textarea id="ddlTrigBody" rows="3"></textarea></div>
+    </div>
+
+    <!-- ROLE-specific -->
+    <div id="ddlRoleSection" style="display:none">
+      <div class="form-row">
+        <div class="form-group"><label>Login</label><select id="ddlRoleLogin"><option value="false">No</option><option value="true">Yes</option></select></div>
+        <div class="form-group"><label>Password</label><input id="ddlRolePassword" type="password"></div>
+      </div>
+    </div>
+
+    <div class="flex mt-16">
+      <button class="btn btn-primary" onclick="generateDDL()">Generate DDL</button>
+      <span class="spinner" id="ddlSpinner" style="display:none"></span>
+    </div>
+    <div class="output" id="ddlOutput" style="display:none"></div>
   </div>
 
-  <footer>
-    <p>© SowinySoft — <a href="mailto:sowinysoft@gmail.com">sowinysoft@gmail.com</a></p>
-    <p style="margin-top:4px">4WD Virtual SQL Server Engine — Schema Builder. All Rights Reserved.</p>
-  </footer>
+  <!-- QBE Builder -->
+  <div class="tab-content" id="tab-qbe">
+    <div class="form-row">
+      <div class="form-group"><label>Query Type</label><select id="qbeType"><option>SELECT</option><option>INSERT</option><option>UPDATE</option><option>DELETE</option></select></div>
+      <div class="form-group"><label>Engine</label><select id="qbeEngine"><option>postgresql</option><option>mysql</option><option>sqlite</option><option>mssql</option></select></div>
+    </div>
+
+    <div class="qbe-section">
+      <h3>Tables</h3>
+      <div id="qbeTables"></div>
+      <button class="btn btn-primary btn-small mt-8" onclick="addQbeTable()">+ Add Table</button>
+    </div>
+
+    <div class="qbe-section">
+      <h3>Columns</h3>
+      <div id="qbeCols"></div>
+      <button class="btn btn-primary btn-small mt-8" onclick="addQbeCol()">+ Add Column</button>
+    </div>
+
+    <div class="qbe-section">
+      <h3>WHERE Conditions</h3>
+      <div id="qbeWhere"></div>
+      <button class="btn btn-primary btn-small mt-8" onclick="addQbeWhere()">+ Add Condition</button>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group"><label>ORDER BY</label><input id="qbeOrderBy" placeholder='[{"column":"id","direction":"DESC"}]'></div>
+      <div class="form-group"><label>Limit</label><input id="qbeLimit" type="number" min="0" placeholder="10"></div>
+      <div class="form-group"><label>Offset</label><input id="qbeOffset" type="number" min="0" placeholder="0"></div>
+    </div>
+
+    <div class="flex mt-16">
+      <button class="btn btn-primary" onclick="buildQBE()">Build SQL</button>
+      <span class="spinner" id="qbeSpinner" style="display:none"></span>
+    </div>
+    <div class="output" id="qbeOutput" style="display:none"></div>
+  </div>
+
+  <!-- Templates -->
+  <div class="tab-content" id="tab-templates">
+    <div class="form-row">
+      <div class="form-group"><label>Object Type</label><select id="tmplType"><option>VIEW</option><option>FUNCTION</option><option>PROCEDURE</option><option>TRIGGER</option></select></div>
+      <div class="form-group"><label>Engine</label><select id="tmplEngine"><option>postgresql</option><option>mysql</option><option>sqlite</option><option>mssql</option></select></div>
+    </div>
+    <div class="flex mt-8">
+      <button class="btn btn-primary" onclick="loadTemplate()">Get Template</button>
+    </div>
+    <div class="output" id="tmplOutput" style="display:none"></div>
+  </div>
+
+  <!-- Validator -->
+  <div class="tab-content" id="tab-validate">
+    <div class="form-group"><label>Design Object (JSON)</label><textarea id="valInput" rows="10">{"objectType":"TABLE","name":"users","schema":"public","columns":[{"name":"id","type":"SERIAL","primaryKey":true},{"name":"email","type":"VARCHAR","length":255,"nullable":false}]}</textarea></div>
+    <div class="flex mt-8">
+      <button class="btn btn-primary" onclick="validateDesign()">Validate</button>
+      <span class="spinner" id="valSpinner" style="display:none"></span>
+    </div>
+    <div id="valOutput" class="mt-16"></div>
+  </div>
+
+  <!-- About -->
+  <div class="tab-content" id="tab-about">
+    <div class="features" id="aboutFeatures"></div>
+    <div class="api-section"><h2 style="font-size:16px;font-weight:700;margin-bottom:12px;color:#f1f5f9;">API Endpoints</h2><div id="apiList"></div></div>
+  </div>
+
+  <footer><p>&copy; SowinySoft &mdash; <a href="mailto:sowinysoft@gmail.com">sowinysoft@gmail.com</a></p><p style="margin-top:4px">4WD Virtual SQL Server Engine &mdash; Schema Builder. All Rights Reserved.</p></footer>
 </div>
 
 <script>
-const apis = [
-  { method: 'GET',  path: '/health', desc: 'Health check' },
-  { method: 'GET',  path: '/api/design/engines', desc: 'List supported engines and types' },
-  { method: 'POST', path: '/api/design/generate', desc: 'Generate DDL from design object' },
-  { method: 'POST', path: '/api/design/validate', desc: 'Validate design object structure' },
-  { method: 'POST', path: '/api/design/query-build', desc: 'Build SQL from QBE state' },
-  { method: 'GET',  path: '/api/design/templates/:type/:engine', desc: 'Get boilerplate template' },
-  { method: 'POST', path: '/api/design/build', desc: 'Generate + optionally deploy (dry-run safe)' },
-  { method: 'POST', path: '/api/design/execute', desc: 'Execute SQL against live DB (requires connection)' },
-  { method: 'POST', path: '/api/design/explain', desc: 'EXPLAIN query plan (requires connection)' },
-  { method: 'POST', path: '/api/design/schema-tables', desc: 'Introspect DB tables (requires connection)' },
-];
-document.getElementById('apiList').innerHTML = apis.map(a =>
-  `<div class="api-row"><span class="method ${a.method.toLowerCase()}">${a.method}</span><span class="path">${a.path}</span><span class="desc">${a.desc}</span></div>`
-).join('');
+// ─── Tab switching ──────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'about') loadAbout();
+  });
+});
+
+// ─── Object type => show/hide sections ──────────────────────────────
+document.getElementById('ddlObjType').addEventListener('change', function() {
+  const v = this.value;
+  document.getElementById('ddlTableSection').style.display = v === 'TABLE' ? '' : 'none';
+  document.getElementById('ddlViewSection').style.display = v === 'VIEW' ? '' : 'none';
+  document.getElementById('ddlSchemaSection').style.display = v === 'SCHEMA' ? '' : 'none';
+  document.getElementById('ddlRoutineSection').style.display = (v === 'FUNCTION' || v === 'PROCEDURE') ? '' : 'none';
+  document.getElementById('ddlTriggerSection').style.display = v === 'TRIGGER' ? '' : 'none';
+  document.getElementById('ddlRoleSection').style.display = v === 'ROLE' ? '' : 'none';
+  // routine-specific: return type only for FUNCTION
+  document.getElementById('ddlReturnType').closest('.form-group').style.display = v === 'FUNCTION' ? '' : 'none';
+});
+
+// ─── DDL: Column rows ───────────────────────────────────────────────
+let colCount = 0;
+function addColRow(data) {
+  data = data || { name: '', type: 'INTEGER', length: '', nullable: true, pk: false, autoInc: false, default: '', unique: false };
+  const i = colCount++;
+  const tr = document.createElement('tr');
+  tr.innerHTML =
+    `<td><input id="colName${i}" value="${data.name}" placeholder="col_name" style="width:100px"></td>` +
+    `<td><select id="colType${i}"><option>INTEGER</option><option>BIGINT</option><option>SMALLINT</option><option>SERIAL</option><option>BIGSERIAL</option><option>VARCHAR</option><option>CHAR</option><option>TEXT</option><option>BOOLEAN</option><option>NUMERIC</option><option>DECIMAL</option><option>REAL</option><option>DOUBLE</option><option>DATE</option><option>TIMESTAMP</option><option>TIMESTAMPTZ</option><option>TIME</option><option>UUID</option><option>JSON</option><option>JSONB</option><option>BYTEA</option></select></td>` +
+    `<td><input id="colLen${i}" value="${data.length}" placeholder="255" style="width:60px"></td>` +
+    `<td><input type="checkbox" id="colNull${i}" ${data.nullable ? 'checked' : ''}></td>` +
+    `<td><input type="checkbox" id="colPk${i}" ${data.pk ? 'checked' : ''}></td>` +
+    `<td><input type="checkbox" id="colAi${i}" ${data.autoInc ? 'checked' : ''}></td>` +
+    `<td><input id="colDef${i}" value="${data.default}" placeholder="NULL" style="width:80px"></td>` +
+    `<td><input type="checkbox" id="colUq${i}" ${data.unique ? 'checked' : ''}></td>` +
+    `<td><button class="btn btn-danger btn-small" onclick="this.closest('tr').remove()">x</button></td>`;
+  document.getElementById('colsBody').appendChild(tr);
+  // Set selected type
+  document.getElementById(`colType${i}`).value = data.type;
+}
+addColRow({ name: 'id', type: 'SERIAL', nullable: false, pk: true, autoInc: false });
+addColRow({ name: 'name', type: 'VARCHAR', length: 255, nullable: false });
+
+// ─── DDL: Generate ──────────────────────────────────────────────────
+async function generateDDL() {
+  const type = document.getElementById('ddlObjType').value;
+  const name = document.getElementById('ddlName').value;
+  const schema = document.getElementById('ddlSchema').value;
+  const out = document.getElementById('ddlOutput');
+  const spinner = document.getElementById('ddlSpinner');
+  spinner.style.display = 'inline-block';
+  out.style.display = 'none';
+
+  let design = { objectType: type, name, schema };
+
+  if (type === 'TABLE') {
+    const cols = [];
+    const rows = document.querySelectorAll('#colsBody tr');
+    rows.forEach((_, idx) => {
+      const getName = document.getElementById(`colName${idx}`);
+      if (!getName) return;
+      cols.push({
+        name: getName.value,
+        type: document.getElementById(`colType${idx}`).value,
+        length: document.getElementById(`colLen${idx}`).value || null,
+        nullable: document.getElementById(`colNull${idx}`).checked,
+        primaryKey: document.getElementById(`colPk${idx}`).checked,
+        autoIncrement: document.getElementById(`colAi${idx}`).checked,
+        defaultValue: document.getElementById(`colDef${idx}`).value || null,
+        unique: document.getElementById(`colUq${idx}`).checked
+      });
+    });
+    design.columns = cols;
+    try {
+      const cstr = document.getElementById('ddlConstraints').value.trim();
+      if (cstr) design.constraints = JSON.parse(cstr);
+    } catch(e) { out.innerHTML = '<div class="msg" style="color:#ef4444">Invalid constraints JSON</div>'; spinner.style.display='none'; out.style.display=''; return; }
+  } else if (type === 'VIEW') {
+    design.selectQuery = document.getElementById('ddlViewQuery').value;
+    design.materialized = document.getElementById('ddlMaterialized').value === 'true';
+    design.checkOption = document.getElementById('ddlCheckOption').value || null;
+  } else if (type === 'SCHEMA') {
+    design.owner = document.getElementById('ddlSchemaOwner').value || null;
+  } else if (type === 'FUNCTION' || type === 'PROCEDURE') {
+    design.language = document.getElementById('ddlLanguage').value;
+    if (type === 'FUNCTION') design.returnType = document.getElementById('ddlReturnType').value;
+    try {
+      const p = document.getElementById('ddlParams').value.trim();
+      if (p) design.params = JSON.parse(p);
+    } catch(e) { out.innerHTML = '<div class="msg" style="color:#ef4444">Invalid params JSON</div>'; spinner.style.display='none'; out.style.display=''; return; }
+    design.body = document.getElementById('ddlBody').value;
+  } else if (type === 'TRIGGER') {
+    design.tableName = document.getElementById('ddlTrigTable').value;
+    design.timing = document.getElementById('ddlTrigTiming').value;
+    design.event = document.getElementById('ddlTrigEvent').value;
+    design.body = document.getElementById('ddlTrigBody').value;
+  } else if (type === 'ROLE') {
+    design.login = document.getElementById('ddlRoleLogin').value === 'true';
+    design.password = document.getElementById('ddlRolePassword').value || null;
+  }
+
+  try {
+    const res = await fetch('/api/design/generate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ design })
+    });
+    const json = await res.json();
+    if (!json.success) { out.innerHTML = `<div class="msg" style="color:#ef4444">Error: ${json.error.message}</div>`; return; }
+    const data = json.data;
+    const engines = ['postgresql', 'mysql', 'sqlite', 'mssql'];
+    let html = '<div class="engine-tabs">';
+    engines.forEach((e,i) => { html += `<div class="engine-tab${i===0?' active':''}" data-eng="${e}" onclick="switchEngineDDL(this,'${e}')">${e}</div>`; });
+    html += '</div>';
+    engines.forEach((e,i) => {
+      const d = data[e] || data;
+      const sql = d.sql || (d.statements || []).join('\n');
+      html += `<pre class="ddl-eng" id="ddlEng${e}" style="display:${i===0?'':'none'}">${escHtml(sql)}</pre>`;
+    });
+    out.innerHTML = html;
+    out.style.display = '';
+  } catch (err) {
+    out.innerHTML = `<div class="msg" style="color:#ef4444">Request failed: ${err.message}</div>`;
+    out.style.display = '';
+  } finally { spinner.style.display = 'none'; }
+}
+
+function switchEngineDDL(el, eng) {
+  document.querySelectorAll('.engine-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.ddl-eng').forEach(p => p.style.display = 'none');
+  const target = document.getElementById('ddlEng' + eng);
+  if (target) target.style.display = '';
+}
+
+// ─── QBE: Dynamic rows ──────────────────────────────────────────────
+let qbeTableCount = 0, qbeColCount = 0, qbeWhereCount = 0;
+
+function addQbeTable(data) {
+  data = data || { schema: 'public', name: '', alias: '' };
+  const i = qbeTableCount++;
+  const div = document.createElement('div');
+  div.className = 'cond-row'; div.id = 'qbeTableRow' + i;
+  div.innerHTML =
+    `<input id="qbeTblSchema${i}" value="${data.schema}" placeholder="schema" style="width:80px">` +
+    `<input id="qbeTblName${i}" value="${data.name}" placeholder="table_name" style="width:140px">` +
+    `<input id="qbeTblAlias${i}" value="${data.alias}" placeholder="alias" style="width:80px">` +
+    `<button class="btn btn-danger btn-small" onclick="document.getElementById('qbeTableRow${i}').remove()">x</button>`;
+  document.getElementById('qbeTables').appendChild(div);
+}
+addQbeTable({ schema: 'public', name: 'users', alias: 'u' });
+
+function addQbeCol(data) {
+  data = data || { table: '', column: '', alias: '' };
+  const i = qbeColCount++;
+  const div = document.createElement('div');
+  div.className = 'cond-row'; div.id = 'qbeColRow' + i;
+  div.innerHTML =
+    `<input id="qbeColTable${i}" value="${data.table}" placeholder="table" style="width:80px">` +
+    `<input id="qbeColName${i}" value="${data.column}" placeholder="column" style="width:140px">` +
+    `<input id="qbeColAlias${i}" value="${data.alias}" placeholder="alias" style="width:80px">` +
+    `<button class="btn btn-danger btn-small" onclick="document.getElementById('qbeColRow${i}').remove()">x</button>`;
+  document.getElementById('qbeCols').appendChild(div);
+}
+addQbeCol({ table: 'u', column: 'id' });
+addQbeCol({ table: 'u', column: 'email' });
+
+function addQbeWhere(data) {
+  data = data || { field: '', operator: '=', value: '', logic: 'AND', table: '' };
+  const i = qbeWhereCount++;
+  const div = document.createElement('div');
+  div.className = 'cond-row'; div.id = 'qbeWhereRow' + i;
+  div.innerHTML =
+    `${i > 0 ? `<select id="qbeWhereLogic${i}"><option${data.logic==='AND'?' selected':''}>AND</option><option${data.logic==='OR'?' selected':''}>OR</option></select>` : ''}` +
+    `<input id="qbeWhereTable${i}" value="${data.table}" placeholder="table" style="width:60px">` +
+    `<input id="qbeWhereField${i}" value="${data.field}" placeholder="field" style="width:100px">` +
+    `<select id="qbeWhereOp${i}"><option${data.operator==='='?' selected':''}>=</option><option${data.operator==='!='?' selected':''}>!=</option><option${data.operator==='>'?' selected':''}>&gt;</option><option${data.operator==='<'?' selected':''}>&lt;</option><option${data.operator==='>='?' selected':''}>&gt;=</option><option${data.operator==='<='?' selected':''}>&lt;=</option><option${data.operator==='LIKE'?' selected':''}>LIKE</option><option${data.operator==='IN'?' selected':''}>IN</option><option${data.operator==='IS'?' selected':''}>IS</option></select>` +
+    `<input id="qbeWhereVal${i}" value="${data.value}" placeholder="value" style="width:120px">` +
+    `<button class="btn btn-danger btn-small" onclick="document.getElementById('qbeWhereRow${i}').remove()">x</button>`;
+  document.getElementById('qbeWhere').appendChild(div);
+}
+addQbeWhere({ field: 'email', operator: 'LIKE', value: "'%@%'", table: 'u' });
+
+// ─── QBE: Build SQL ─────────────────────────────────────────────────
+async function buildQBE() {
+  const engine = document.getElementById('qbeEngine').value;
+  const queryType = document.getElementById('qbeType').value;
+  const out = document.getElementById('qbeOutput');
+  const spinner = document.getElementById('qbeSpinner');
+  spinner.style.display = 'inline-block';
+  out.style.display = 'none';
+
+  const tables = [];
+  document.querySelectorAll('#qbeTables .cond-row').forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const schema = inputs[0].value;
+    const name = inputs[1].value;
+    const alias = inputs[2].value;
+    if (name) tables.push({ schema, name, alias: alias || undefined });
+  });
+
+  const columns = [];
+  document.querySelectorAll('#qbeCols .cond-row').forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const table = inputs[0].value;
+    const column = inputs[1].value;
+    const alias = inputs[2].value;
+    if (column) columns.push({ table: table || undefined, column, alias: alias || undefined });
+  });
+
+  const where = [];
+  document.querySelectorAll('#qbeWhere .cond-row').forEach(row => {
+    const sel = row.querySelector('select');
+    const inputs = row.querySelectorAll('input');
+    const logic = sel ? sel.value : 'AND';
+    const table = inputs[0].value;
+    const field = inputs[1].value;
+    const op = row.querySelectorAll('select')[inputs.length > 0 ? 1 : 0];
+    const oper = op ? op.value : '=';
+    const val = inputs[inputs.length - 1].value;
+    if (field) where.push({ logic, table: table || undefined, field, operator: oper, value: val });
+  });
+
+  let orderBy = [];
+  try {
+    const ob = document.getElementById('qbeOrderBy').value.trim();
+    if (ob) orderBy = JSON.parse(ob);
+  } catch(e) {}
+
+  const qbe = {
+    queryType,
+    tables,
+    columns: columns.length > 0 ? columns : undefined,
+    where: where.length > 0 ? where : undefined,
+    orderBy: orderBy.length > 0 ? orderBy : undefined,
+    limit: parseInt(document.getElementById('qbeLimit').value) || 0,
+    offset: parseInt(document.getElementById('qbeOffset').value) || 0
+  };
+
+  try {
+    const res = await fetch('/api/design/query-build', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ qbe, engine })
+    });
+    const json = await res.json();
+    if (!json.success) { out.innerHTML = `<div class="msg" style="color:#ef4444">Error: ${json.error.message}</div>`; return; }
+    out.innerHTML = `<pre>${escHtml(json.data.sql)}</pre>`;
+    out.style.display = '';
+  } catch (err) {
+    out.innerHTML = `<div class="msg" style="color:#ef4444">Request failed: ${err.message}</div>`;
+    out.style.display = '';
+  } finally { spinner.style.display = 'none'; }
+}
+
+// ─── Templates ──────────────────────────────────────────────────────
+async function loadTemplate() {
+  const type = document.getElementById('tmplType').value;
+  const engine = document.getElementById('tmplEngine').value;
+  const out = document.getElementById('tmplOutput');
+  try {
+    const res = await fetch(`/api/design/templates/${type}/${engine}`);
+    const json = await res.json();
+    if (!json.success) { out.innerHTML = `<div class="msg" style="color:#ef4444">Error</div>`; out.style.display=''; return; }
+    out.innerHTML = `<div class="engine-label">${type} — ${engine}</div><pre>${escHtml(json.data.template)}</pre>`;
+    out.style.display = '';
+  } catch (err) {
+    out.innerHTML = `<div class="msg" style="color:#ef4444">Request failed: ${err.message}</div>`;
+    out.style.display = '';
+  }
+}
+
+// ─── Validator ──────────────────────────────────────────────────────
+async function validateDesign() {
+  const out = document.getElementById('valOutput');
+  const spinner = document.getElementById('valSpinner');
+  spinner.style.display = 'inline-block';
+  let design;
+  try {
+    design = JSON.parse(document.getElementById('valInput').value);
+  } catch(e) {
+    out.innerHTML = '<div class="msg" style="color:#ef4444">Invalid JSON</div>';
+    spinner.style.display = 'none'; return;
+  }
+  try {
+    const res = await fetch('/api/design/validate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ design })
+    });
+    const json = await res.json();
+    if (!json.success) { out.innerHTML = `<div class="msg" style="color:#ef4444">Error: ${json.error.message}</div>`; return; }
+    const v = json.data;
+    let html = `<span class="valid-badge ${v.valid ? 'pass' : 'fail'}">${v.valid ? 'VALID' : 'INVALID'}</span>`;
+    if (v.errors && v.errors.length > 0) {
+      html += '<ul class="error-list">' + v.errors.map(e => `<li>${escHtml(e)}</li>`).join('') + '</ul>';
+    }
+    out.innerHTML = html;
+  } catch (err) {
+    out.innerHTML = `<div class="msg" style="color:#ef4444">Request failed: ${err.message}</div>`;
+  } finally { spinner.style.display = 'none'; }
+}
+
+// ─── About page ─────────────────────────────────────────────────────
+function loadAbout() {
+  document.getElementById('aboutFeatures').innerHTML = [
+    { icon: '🗄️', title: 'DDL Generation', desc: 'Design tables, views, functions, procedures, triggers & roles — generate engine-specific DDL offline.' },
+    { icon: '🔍', title: 'QBE Query Builder', desc: 'Build SELECT/INSERT/UPDATE/DELETE queries from a visual QBE state — joins, WHERE, GROUP BY, ORDER BY, UNION.' },
+    { icon: '🔄', title: 'Multi-Engine', desc: 'Four engines: PostgreSQL, MySQL, SQLite, MSSQL. Design once, output for any dialect — all without a live DB.' },
+    { icon: '✅', title: 'Validation', desc: 'Structural validation of design objects — missing names, duplicate columns, constraint references.' },
+    { icon: '📋', title: 'Templates', desc: 'Boilerplate code for views, functions, procedures, and triggers across all four engines.' },
+    { icon: '⚡', title: 'Dry-Run Mode', desc: 'Preview generated SQL without executing. The Virtual SQL Server Engine pattern — design, validate, deploy.' },
+  ].map(c => `<div class="card" style="background:linear-gradient(135deg,rgba(30,41,59,0.8),rgba(15,23,42,0.8));border:1px solid rgba(148,163,184,0.1);border-radius:12px;padding:20px;transition:all 0.2s;"><div style="font-size:24px;margin-bottom:8px">${c.icon}</div><h3 style="font-size:14px;font-weight:600;margin-bottom:6px;color:#f1f5f9">${c.title}</h3><p style="font-size:12px;color:#94a3b8;line-height:1.5">${c.desc}</p></div>`).join('');
+
+  document.getElementById('apiList').innerHTML = [
+    { m: 'GET', p: '/health', d: 'Health check' },
+    { m: 'GET', p: '/api/design/engines', d: 'List supported engines and types' },
+    { m: 'POST', p: '/api/design/generate', d: 'Generate DDL from design object' },
+    { m: 'POST', p: '/api/design/validate', d: 'Validate design object structure' },
+    { m: 'POST', p: '/api/design/query-build', d: 'Build SQL from QBE state' },
+    { m: 'GET', p: '/api/design/templates/:type/:engine', d: 'Get boilerplate template' },
+    { m: 'POST', p: '/api/design/build', d: 'Generate + optionally deploy (dry-run safe)' },
+    { m: 'POST', p: '/api/design/execute', d: 'Execute SQL against live DB' },
+    { m: 'POST', p: '/api/design/explain', d: 'EXPLAIN query plan' },
+    { m: 'POST', p: '/api/design/schema-tables', d: 'Introspect DB tables' },
+  ].map(a => `<div style="display:flex;align-items:center;gap:10px;background:rgba(15,23,42,0.6);border:1px solid rgba(148,163,184,0.08);border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:6px;font-family:'JetBrains Mono',monospace"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:2px 8px;border-radius:4px;min-width:40px;text-align:center;background:${a.m==='GET'?'rgba(34,197,94,0.2)':'rgba(59,130,246,0.2)'};color:${a.m==='GET'?'#22c55e':'#3b82f6'}">${a.m}</span><span style="color:#e2e8f0;flex:1">${a.p}</span><span style="color:#64748b;font-family:'Inter',sans-serif">${a.d}</span></div>`).join('');
+}
+
+// ─── Helper ─────────────────────────────────────────────────────────
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Init: show table section by default
+document.getElementById('ddlObjType').dispatchEvent(new Event('change'));
 </script>
 </body>
 </html>

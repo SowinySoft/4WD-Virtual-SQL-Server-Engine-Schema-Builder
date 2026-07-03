@@ -10,7 +10,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "cli": "node index.js",
-    "serve": "node index.js --serve"
+    "serve": "node index.js --serve",
+    "test": "node --test test/*.test.js"
   },
   "keywords": [
     "virtual-sql-server-engine",
