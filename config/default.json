@@ -1,0 +1,48 @@
+{
+  "server": {
+    "port": 3005,
+    "host": "0.0.0.0"
+  },
+  "defaults": {
+    "engine": "postgresql",
+    "schema": "public",
+    "tableType": "heap"
+  },
+  "engines": {
+    "postgresql": {
+      "port": 5432,
+      "defaultCharset": "UTF8",
+      "quoteChar": "\""
+    },
+    "mysql": {
+      "port": 3306,
+      "defaultCharset": "utf8mb4",
+      "quoteChar": "`"
+    },
+    "sqlite": {
+      "defaultCharset": "UTF8",
+      "quoteChar": "\""
+    },
+    "mssql": {
+      "port": 1433,
+      "defaultCharset": "UTF-8",
+      "quoteChar": "\""
+    }
+  },
+  "typeMappings": {
+    "postgresql": ["SERIAL","BIGSERIAL","UUID","VARCHAR(n)","TEXT","INTEGER","BIGINT","SMALLINT","BOOLEAN","NUMERIC(p,s)","REAL","DOUBLE PRECISION","DATE","TIMESTAMP","TIMESTAMPTZ","TIME","INTERVAL","JSON","JSONB","BYTEA","INET","CIDR"],
+    "mysql": ["INT AUTO_INCREMENT","BIGINT AUTO_INCREMENT","CHAR(36)","VARCHAR(n)","TEXT","INT","BIGINT","SMALLINT","TINYINT(1)","DECIMAL(p,s)","FLOAT","DOUBLE","DATE","DATETIME","TIMESTAMP","TIME","YEAR","JSON","LONGBLOB","VARCHAR(45)","VARCHAR(45)"],
+    "sqlite": ["INTEGER","INTEGER","TEXT","TEXT","TEXT","INTEGER","INTEGER","INTEGER","INTEGER","REAL","REAL","REAL","TEXT","TEXT","TEXT","TEXT","TEXT","TEXT","BLOB","TEXT","TEXT"],
+    "mssql": ["INT IDENTITY(1,1)","BIGINT IDENTITY(1,1)","UNIQUEIDENTIFIER","NVARCHAR(n)","NVARCHAR(MAX)","INT","BIGINT","SMALLINT","BIT","DECIMAL(p,s)","REAL","FLOAT","DATE","DATETIME2","DATETIMEOFFSET","TIME","DATETIME2","NVARCHAR(MAX)","VARBINARY(MAX)","NVARCHAR(45)","NVARCHAR(45)"]
+  },
+  "typeCategories": {
+    "integer": ["SERIAL","BIGSERIAL","INTEGER","BIGINT","SMALLINT","INT","INT AUTO_INCREMENT","BIGINT AUTO_INCREMENT","INT IDENTITY(1,1)","BIGINT IDENTITY(1,1)"],
+    "text": ["VARCHAR(n)","TEXT","CHAR(n)","NVARCHAR(n)","NVARCHAR(MAX)"],
+    "numeric": ["NUMERIC(p,s)","DECIMAL(p,s)","REAL","DOUBLE PRECISION","FLOAT","DOUBLE","REAL"],
+    "boolean": ["BOOLEAN","TINYINT(1)","BIT"],
+    "date": ["DATE","TIMESTAMP","TIMESTAMPTZ","DATETIME","DATETIME2","DATETIMEOFFSET"],
+    "binary": ["BYTEA","BLOB","LONGBLOB","VARBINARY(MAX)"],
+    "json": ["JSON","JSONB"],
+    "uuid": ["UUID","CHAR(36)","UNIQUEIDENTIFIER"]
+  }
+}

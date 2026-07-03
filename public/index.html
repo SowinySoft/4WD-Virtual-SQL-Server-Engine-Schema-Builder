@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4WD Virtual SQL Server Engine — Schema Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: #0a0a1a;
+  color: #e2e8f0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.container { max-width: 960px; margin: 0 auto; padding: 40px 24px; flex: 1; }
+
+/* Header */
+header {
+  text-align: center;
+  padding: 60px 0 40px;
+}
+.badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+h1 {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+}
+.subtitle {
+  font-size: 16px;
+  color: #94a3b8;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Feature cards */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 32px 0;
+}
+.card {
+  background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.8));
+  border: 1px solid rgba(148,163,184,0.1);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.2s;
+}
+.card:hover {
+  border-color: rgba(96,165,250,0.3);
+  transform: translateY(-2px);
+}
+.card-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+.card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #f1f5f9;
+}
+.card p {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+/* API endpoints */
+.api-section {
+  margin: 40px 0;
+}
+.api-section h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #f1f5f9;
+}
+.api-grid {
+  display: grid;
+  gap: 8px;
+}
+.api-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15,23,42,0.6);
+  border: 1px solid rgba(148,163,184,0.08);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.method {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  min-width: 48px;
+  text-align: center;
+}
+.method.get { background: rgba(34,197,94,0.2); color: #22c55e; }
+.method.post { background: rgba(59,130,246,0.2); color: #3b82f6; }
+.path { color: #e2e8f0; flex: 1; }
+.desc { color: #64748b; font-family: 'Inter', sans-serif; }
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 40px 0;
+  color: #475569;
+  font-size: 12px;
+  border-top: 1px solid rgba(148,163,184,0.08);
+}
+footer a { color: #60a5fa; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="badge">4WD Virtual SQL Server Engine</div>
+    <h1>Schema Builder</h1>
+    <p class="subtitle">
+      Design database schemas and build QBE queries entirely offline — no database connection required.
+      Generate DDL for PostgreSQL, MySQL, SQLite, and MSSQL from a single design object.
+    </p>
+  </header>
+
+  <div class="features">
+    <div class="card">
+      <div class="card-icon">🗄️</div>
+      <h3>DDL Generation</h3>
+      <p>Design tables, views, functions, procedures, triggers &amp; roles — generate engine-specific DDL offline.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔍</div>
+      <h3>QBE Query Builder</h3>
+      <p>Build SELECT/INSERT/UPDATE/DELETE queries from a visual QBE state — joins, WHERE, GROUP BY, ORDER BY, UNION.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔄</div>
+      <h3>Multi-Engine</h3>
+      <p>Four engines: PostgreSQL, MySQL, SQLite, MSSQL. Design once, output for any dialect — all without a live DB.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">✅</div>
+      <h3>Validation</h3>
+      <p>Structural validation of design objects — missing names, duplicate columns, constraint references.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📋</div>
+      <h3>Templates</h3>
+      <p>Boilerplate code for views, functions, procedures, and triggers across all four engines.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <h3>Dry-Run Mode</h3>
+      <p>Preview generated SQL without executing. The Virtual SQL Server Engine pattern — design, validate, deploy.</p>
+    </div>
+  </div>
+
+  <div class="api-section">
+    <h2>API Endpoints</h2>
+    <div class="api-grid" id="apiList"></div>
+  </div>
+
+  <footer>
+    <p>© SowinySoft — <a href="mailto:sowinysoft@gmail.com">sowinysoft@gmail.com</a></p>
+    <p style="margin-top:4px">4WD Virtual SQL Server Engine — Schema Builder. All Rights Reserved.</p>
+  </footer>
+</div>
+
+<script>
+const apis = [
+  { method: 'GET',  path: '/health', desc: 'Health check' },
+  { method: 'GET',  path: '/api/design/engines', desc: 'List supported engines and types' },
+  { method: 'POST', path: '/api/design/generate', desc: 'Generate DDL from design object' },
+  { method: 'POST', path: '/api/design/validate', desc: 'Validate design object structure' },
+  { method: 'POST', path: '/api/design/query-build', desc: 'Build SQL from QBE state' },
+  { method: 'GET',  path: '/api/design/templates/:type/:engine', desc: 'Get boilerplate template' },
+  { method: 'POST', path: '/api/design/build', desc: 'Generate + optionally deploy (dry-run safe)' },
+  { method: 'POST', path: '/api/design/execute', desc: 'Execute SQL against live DB (requires connection)' },
+  { method: 'POST', path: '/api/design/explain', desc: 'EXPLAIN query plan (requires connection)' },
+  { method: 'POST', path: '/api/design/schema-tables', desc: 'Introspect DB tables (requires connection)' },
+];
+document.getElementById('apiList').innerHTML = apis.map(a =>
+  `<div class="api-row"><span class="method ${a.method.toLowerCase()}">${a.method}</span><span class="path">${a.path}</span><span class="desc">${a.desc}</span></div>`
+).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "name": "4wd-vsse-schema-builder",
+  "version": "1.0.0",
+  "description": "4WD Virtual SQL Server Engine — Schema Builder: design tables, views, functions, procedures, triggers, roles and generate DDL for PostgreSQL, MySQL, SQLite, and MSSQL — all offline, no DB connection required",
+  "main": "server.js",
+  "bin": {
+    "schema-builder": "./index.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "cli": "node index.js",
+    "serve": "node index.js --serve"
+  },
+  "keywords": [
+    "virtual-sql-server-engine",
+    "vsse",
+    "schema-builder",
+    "ddl-generator",
+    "qbe",
+    "offline-schema-design",
+    "postgresql",
+    "mysql",
+    "sqlite",
+    "mssql"
+  ],
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "commander": "^11.0.0",
+    "express": "^4.21.0",
+    "pg": "^8.13.0",
+    "mysql2": "^3.11.0",
+    "sql.js": "^1.10.0",
+    "mssql": "^11.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
