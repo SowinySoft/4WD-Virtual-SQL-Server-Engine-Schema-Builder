@@ -360,102 +360,117 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
   <!-- QBE Container -->
   <div id="qbeContainer">
     <div class="qbe-header">
-      <select id="qbeQueryType">
+      <select id="qbeQueryType" onchange="qbeGenerate()">
         <option value="SELECT">SELECT</option>
         <option value="INSERT">INSERT</option>
         <option value="UPDATE">UPDATE</option>
         <option value="DELETE">DELETE</option>
       </select>
-      <select id="qbeEngine">
-        <option value="postgresql">PostgreSQL</option>
-        <option value="mysql">MySQL</option>
-        <option value="sqlite">SQLite</option>
-        <option value="mssql">MSSQL</option>
-      </select>
       <span style="color:var(--text-muted);font-size:11px">|</span>
-      <label style="font-size:11px">Limit:</label><input type="number" id="limitInput" style="width:60px">
-      <label style="font-size:11px">Offset:</label><input type="number" id="offsetInput" style="width:60px">
-      <label><input type="radio" name="selectMode" id="selectAllRadio" checked onchange="qbeState.selectMode='all'"> All</label>
-      <label><input type="radio" name="selectMode" id="selectDistinctRadio" onchange="qbeState.selectMode='distinct'"> Distinct</label>
+      <label style="font-size:11px">Limit:</label><input type="number" id="qbeLimit" value="100" min="0" style="width:60px" oninput="qbeGenerate()">
+      <label style="font-size:11px">Offset:</label><input type="number" id="qbeOffset" value="0" min="0" style="width:60px" oninput="qbeGenerate()">
       <div class="qbe-actions">
         <button class="btn" onclick="qbeAddTable()">+ Table</button>
         <button class="btn" onclick="qbeClearAll()">Clear All</button>
-        <button class="btn btn-primary" onclick="qbeBuild()">Build</button>
-        <button class="btn" onclick="qbeExecute()">Execute</button>
+        <button class="btn btn-primary" onclick="qbeExecute()">Execute</button>
+        <button class="btn" onclick="qbeCheckSyntax()">Check</button>
         <button class="btn" onclick="qbeRunExplain()">Explain</button>
       </div>
       <span id="qbeStatus" class="qbe-status"></span>
     </div>
     <div class="qbe-main">
-      <div class="qbe-tabs">
-        <button class="qbe-tab active" data-tab="tables" onclick="tabClick('tables','qbeTabTables')">Tables</button>
-        <button class="qbe-tab" data-tab="joins" onclick="tabClick('joins','qbeTabJoins')">Joins</button>
-        <button class="qbe-tab" data-tab="where" onclick="tabClick('where','qbeTabWhere')">WHERE</button>
-        <button class="qbe-tab" data-tab="group" onclick="tabClick('group','qbeTabGroup')">GROUP/HAVING</button>
-        <button class="qbe-tab" data-tab="order" onclick="tabClick('order','qbeTabOrder')">ORDER BY</button>
-      </div>
-      <div class="qbe-body">
-        <div class="qbe-panes">
-          <div id="qbeTabTables" class="qbe-pane">
-            <div id="qbeTables"></div>
-            <button class="btn btn-sm" onclick="qbeAddTable()">+ Add Table</button>
-          </div>
-          <div id="qbeTabJoins" class="qbe-pane" style="display:none">
-            <div id="qbeJoins"></div>
-            <button class="btn btn-sm" onclick="qbeAddJoin()">+ Add Join</button>
-          </div>
-          <div id="qbeTabWhere" class="qbe-pane" style="display:none">
-            <div id="qbeConditions"></div>
-            <button class="btn btn-sm" onclick="qbeAddCondition()">+ Add Condition</button>
-          </div>
-          <div id="qbeTabGroup" class="qbe-pane" style="display:none">
-            <div id="qbeGroupBy"></div>
-            <button class="btn btn-sm" onclick="qbeAddGroup()">+ Add Group</button>
-            <div style="margin-top:8px"><strong>HAVING</strong></div>
-            <div id="qbeHaving"></div>
-            <button class="btn btn-sm" onclick="qbeAddHaving()">+ Add Having</button>
-          </div>
-          <div id="qbeTabOrder" class="qbe-pane" style="display:none">
-            <div id="qbeOrderBy"></div>
-            <button class="btn btn-sm" onclick="qbeAddOrder()">+ Add Order</button>
+      <div class="qbe-browser">
+        <div class="qbe-panel-title">Tables <span class="badge" id="qbeTableCount"></span></div>
+        <div class="qbe-browser-search">
+          <input id="qbeTableSearch" placeholder="Search tables..." oninput="qbeFilterTables()">
+          <button class="btn" onclick="qbeRefreshTables()" title="Refresh from database">R</button>
+        </div>
+        <div class="qbe-browser-list" id="qbeTableList">
+          <div style="padding:20px;color:var(--text-muted);font-size:11px;text-align:center">
+            <div style="margin-bottom:8px">No database connected</div>
+            <div style="font-size:10px">Use the build config bar below to connect, then click Refresh</div>
           </div>
         </div>
-        <div class="qbe-select-pane">
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface);border-bottom:1px solid var(--border)">
-            <span style="font-size:11px;color:var(--text-muted)">SELECT columns</span>
-            <span class="qbe-kw-chip clause" style="cursor:pointer;font-size:10px" onclick="qbeKwInsert('SELECT')">SELECT</span>
-            <span class="qbe-kw-chip clause" style="cursor:pointer;font-size:10px" onclick="qbeKwInsert('FROM')">FROM</span>
-            <span class="qbe-kw-chip clause" style="cursor:pointer;font-size:10px" onclick="qbeKwInsert('WHERE')">WHERE</span>
-            <span class="qbe-kw-chip clause" style="cursor:pointer;font-size:10px" onclick="qbeKwInsert('GROUP BY')">GROUP BY</span>
-            <span class="qbe-kw-chip clause" style="cursor:pointer;font-size:10px" onclick="qbeKwInsert('ORDER BY')">ORDER BY</span>
-            <span class="qbe-kw-chip clause" style="cursor:pointer;font-size:10px" onclick="qbeKwInsert('AS')">AS</span>
-            <span class="qbe-kw-chip clause" style="cursor:pointer;font-size:10px" onclick="qbeKwInsert('DISTINCT')">DISTINCT</span>
-            <span class="qbe-kw-chip clause" style="cursor:pointer;font-size:10px" onclick="qbeKwInsert('COUNT()')">COUNT</span>
-            <span class="qbe-kw-chip clause" style="cursor:pointer;font-size:10px" onclick="qbeKwInsert('SUM()')">SUM</span>
+      </div>
+      <div class="qbe-canvas" id="qbeCanvas" ondragover="qbeDragOver(event)" ondrop="qbeDropOnCanvas(event)" ondragleave="qbeDragLeave(event)">
+        <div class="qbe-canvas-scroll" id="qbeCanvasScroll">
+          <div id="qbeEmptyCanvas" style="padding:40px;text-align:center;color:var(--text-muted);font-size:12px">
+            <div style="font-size:32px;margin-bottom:12px">Q</div>
+            <div>Click tables from the left panel to add them here</div>
+            <div style="font-size:10px;margin-top:8px">Select columns, configure JOINs, add WHERE conditions</div>
           </div>
-          <textarea id="qbeSelectCols" placeholder="Enter SELECT columns, use keyword chips above..." style="width:100%;flex:1;resize:vertical;background:var(--bg);color:var(--text);border:none;padding:6px 10px;font-family:var(--font);font-size:12px">*</textarea>
-          <div style="display:flex;gap:8px;padding:4px 10px;background:var(--surface);border-bottom:1px solid var(--border);border-top:1px solid var(--border)">
-            <span style="font-size:11px;color:var(--text-muted)">UNION</span>
-            <select onchange="qbeState.unionType=this.value"><option value="">None</option><option value="UNION">UNION</option><option value="UNION ALL">UNION ALL</option><option value="INTERSECT">INTERSECT</option><option value="EXCEPT">EXCEPT</option></select>
-          </div>
-          <textarea id="qbeUnionSelect" placeholder="UNION SELECT statement..." style="width:100%;height:60px;resize:vertical;background:var(--bg);color:var(--text);border:none;padding:4px 10px;font-family:var(--font);font-size:12px"></textarea>
+        </div>
+      </div>
+      <div class="qbe-keywords">
+        <div class="qbe-panel-title">Keywords</div>
+        <div class="qbe-keywords-scroll">
+          <div class="qbe-kw-cat"><div class="qbe-kw-cat-title">Clauses</div><div class="qbe-kw-chips">
+            <span class="qbe-kw-chip clause" onclick="qbeKwInsert('SELECT')">SELECT</span>
+            <span class="qbe-kw-chip clause" onclick="qbeKwInsert('FROM')">FROM</span>
+            <span class="qbe-kw-chip clause" onclick="qbeKwInsert('WHERE')">WHERE</span>
+            <span class="qbe-kw-chip clause" onclick="qbeKwInsert('GROUP BY')">GROUP BY</span>
+            <span class="qbe-kw-chip clause" onclick="qbeKwInsert('HAVING')">HAVING</span>
+            <span class="qbe-kw-chip clause" onclick="qbeKwInsert('ORDER BY')">ORDER BY</span>
+            <span class="qbe-kw-chip clause" onclick="qbeKwInsert('LIMIT')">LIMIT</span>
+            <span class="qbe-kw-chip clause" onclick="qbeKwInsert('OFFSET')">OFFSET</span>
+            <span class="qbe-kw-chip clause" onclick="qbeKwInsert('DISTINCT')">DISTINCT</span>
+            <span class="qbe-kw-chip clause" onclick="qbeKwInsert('AS')">AS</span>
+          </div></div>
+          <div class="qbe-kw-cat"><div class="qbe-kw-cat-title">Joins</div><div class="qbe-kw-chips">
+            <span class="qbe-kw-chip join" onclick="qbeSetJoinType(0,'INNER')">INNER</span>
+            <span class="qbe-kw-chip join" onclick="qbeSetJoinType(0,'LEFT')">LEFT</span>
+            <span class="qbe-kw-chip join" onclick="qbeSetJoinType(0,'RIGHT')">RIGHT</span>
+            <span class="qbe-kw-chip join" onclick="qbeSetJoinType(0,'FULL')">FULL</span>
+            <span class="qbe-kw-chip join" onclick="qbeAddJoin('CROSS')">CROSS</span>
+          </div></div>
+          <div class="qbe-kw-cat"><div class="qbe-kw-cat-title">Operators</div><div class="qbe-kw-chips">
+            <span class="qbe-kw-chip op" onclick="qbeSetWhereOp('=')">=</span>
+            <span class="qbe-kw-chip op" onclick="qbeSetWhereOp('<>')">&lt;&gt;</span>
+            <span class="qbe-kw-chip op" onclick="qbeSetWhereOp('>')">&gt;</span>
+            <span class="qbe-kw-chip op" onclick="qbeSetWhereOp('<')">&lt;</span>
+            <span class="qbe-kw-chip op" onclick="qbeSetWhereOp('>=')">&gt;=</span>
+            <span class="qbe-kw-chip op" onclick="qbeSetWhereOp('<=')">&lt;=</span>
+            <span class="qbe-kw-chip op" onclick="qbeAddWhere('','LIKE','')">LIKE</span>
+            <span class="qbe-kw-chip op" onclick="qbeAddWhere('','IN','')">IN</span>
+            <span class="qbe-kw-chip op" onclick="qbeAddWhere('','BETWEEN','')">BETWEEN</span>
+            <span class="qbe-kw-chip op" onclick="qbeAddWhere('','IS NULL','')">IS NULL</span>
+            <span class="qbe-kw-chip op" onclick="qbeAddWhere('','IS NOT NULL','')">IS NOT NULL</span>
+          </div></div>
+          <div class="qbe-kw-cat"><div class="qbe-kw-cat-title">Aggregates</div><div class="qbe-kw-chips">
+            <span class="qbe-kw-chip agg" onclick="qbeKwInsert('COUNT()')">COUNT</span>
+            <span class="qbe-kw-chip agg" onclick="qbeKwInsert('SUM()')">SUM</span>
+            <span class="qbe-kw-chip agg" onclick="qbeKwInsert('AVG()')">AVG</span>
+            <span class="qbe-kw-chip agg" onclick="qbeKwInsert('MIN()')">MIN</span>
+            <span class="qbe-kw-chip agg" onclick="qbeKwInsert('MAX()')">MAX</span>
+          </div></div>
+          <div class="qbe-kw-cat"><div class="qbe-kw-cat-title">Set Ops</div><div class="qbe-kw-chips">
+            <span class="qbe-kw-chip setop" onclick="qbeAddUnion('UNION')">UNION</span>
+            <span class="qbe-kw-chip setop" onclick="qbeAddUnion('UNION ALL')">UNION ALL</span>
+            <span class="qbe-kw-chip setop" onclick="qbeAddUnion('INTERSECT')">INTERSECT</span>
+            <span class="qbe-kw-chip setop" onclick="qbeAddUnion('EXCEPT')">EXCEPT</span>
+          </div></div>
+        </div>
       </div>
     </div>
-    <div id="qbeOutputContainer" style="display:none;flex-direction:column;border-top:1px solid var(--border);flex-shrink:0">
-      <div class="preview-tabs">
-        <button class="active" onclick="switchQbeSqlTab('postgresql',this)">PostgreSQL</button>
-        <button onclick="switchQbeSqlTab('mysql',this)">MySQL</button>
-        <button onclick="switchQbeSqlTab('sqlite',this)">SQLite</button>
-        <button onclick="switchQbeSqlTab('mssql',this)">MSSQL</button>
+    <div class="qbe-sql-preview">
+      <div class="qbe-sql-header">
+        <span>Generated SQL</span>
+        <button class="btn" onclick="qbeCopySql()">Copy</button>
+        <button class="btn" onclick="qbeExportSql()">Export</button>
+        <span id="qbeSqlInfo" style="margin-left:auto;color:var(--text-muted);font-size:10px"></span>
       </div>
-      <div style="flex:1;overflow:auto;display:flex">
-        <textarea id="qbeSqlPostgresql" readonly style="flex:1;background:var(--bg);color:var(--text);border:none;padding:8px;font-family:var(--font);font-size:12px;resize:none"></textarea>
-        <textarea id="qbeSqlMysql" readonly style="flex:1;background:var(--bg);color:var(--text);border:none;padding:8px;font-family:var(--font);font-size:12px;resize:none;display:none"></textarea>
-        <textarea id="qbeSqlSqlite" readonly style="flex:1;background:var(--bg);color:var(--text);border:none;padding:8px;font-family:var(--font);font-size:12px;resize:none;display:none"></textarea>
-        <textarea id="qbeSqlMssql" readonly style="flex:1;background:var(--bg);color:var(--text);border:none;padding:8px;font-family:var(--font);font-size:12px;resize:none;display:none"></textarea>
+      <div class="qbe-sql-body">
+        <pre id="qbeSqlText" class="placeholder">Click tables and configure your query</pre>
+      </div>
+      <div class="qbe-results" id="qbeResults">
+        <div class="qbe-results-header">
+          <span id="qbeResultsLabel">Results</span>
+          <span id="qbeSyntaxBadge"></span>
+          <span class="close-btn" onclick="qbeCloseResults()">X</span>
+        </div>
+        <div class="qbe-results-body" id="qbeResultsBody"></div>
       </div>
     </div>
-    <div class="qbe-results" id="qbeResults" style="border-top:1px solid var(--border);overflow:auto;max-height:200px"></div>
   </div>
   <!-- ER Diagram -->
   <div id="erContainer" class="er-container">
@@ -593,7 +608,7 @@ function treeAddObject(parentId, type) {
       const parent = treeFindNode(parentId);
       if (!parent) return false;
       const node = { id:treeGenId(), name:name, type:type, expanded:false, children:[],
-        columns: type==='table'?[{name:'id',type:'SERIAL',length:'',nullable:false,default:'',primaryKey:true,unique:false,foreignKey:false,refTable:'',refColumn:'',onDelete:'',onUpdate:''},{name:'name',type:'VARCHAR',length:'255',nullable:false,default:'',primaryKey:false,unique:false,foreignKey:false,refTable:'',refColumn:'',onDelete:'',onUpdate:''},{name:'email',type:'VARCHAR',length:'255',nullable:true,default:'',primaryKey:false,unique:true,foreignKey:false,refTable:'',refColumn:'',onDelete:'',onUpdate:''}]:[],
+        columns: type==='table'?[{name:'id',type:'SERIAL',length:'',nullable:false,default:'',primaryKey:true,unique:false,foreignKey:false,refTable:'',refColumn:'',onDelete:'',onUpdate:'',comment:''},{name:'name',type:'VARCHAR',length:'255',nullable:false,default:'',primaryKey:false,unique:false,foreignKey:false,refTable:'',refColumn:'',onDelete:'',onUpdate:'',comment:''},{name:'email',type:'VARCHAR',length:'255',nullable:true,default:'',primaryKey:false,unique:true,foreignKey:false,refTable:'',refColumn:'',onDelete:'',onUpdate:'',comment:''}]:[],
         definition: '' };
       parent.children.push(node); parent.expanded = true; treeRender(); treeSave();
       if (type==='table'||type==='view') { selectedNodeId = node.id; treeActivate(node.id); }
@@ -803,20 +818,7 @@ function saveToTree() {
   }
   treeRender(); treeSave();
 }
-// --- QBE tab switch ----------------------------------------
-function switchQbeSqlTab(engine, btn) {
-  document.querySelectorAll('#qbeOutputContainer .preview-tabs button').forEach(function(b){b.classList.remove('active');});
-  btn.classList.add('active');
-  ['postgresql','mysql','sqlite','mssql'].forEach(function(e){
-    document.getElementById('qbeSql'+e.charAt(0).toUpperCase()+e.slice(1)).style.display = e === engine ? '' : 'none';
-  });
-}
-function tabClick(tab, paneId) {
-  document.querySelectorAll('.qbe-tab').forEach(function(t){t.classList.remove('active');});
-  document.querySelector('.qbe-tab[data-tab="'+tab+'"]')?.classList.add('active');
-  document.querySelectorAll('.qbe-pane').forEach(function(p){p.style.display='none';});
-  document.getElementById(paneId).style.display = '';
-}
+
 
 // --- Mode switch -------------------------------------------
 function switchMode(mode, btn) {
@@ -853,14 +855,14 @@ function renderTableDesigner() {
   const container = document.getElementById('designerContent');
   if (state.columns.length === 0) {
     state.columns = [
-      { name:'id', type:'SERIAL', length:'', nullable:false, default:'', primaryKey:true, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'' },
-      { name:'name', type:'VARCHAR', length:'255', nullable:false, default:'', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'' },
-      { name:'email', type:'VARCHAR', length:'255', nullable:true, default:'', primaryKey:false, unique:true, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'' },
-      { name:'created_at', type:'TIMESTAMP', length:'', nullable:true, default:'NOW()', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'' }
+      { name:'id', type:'SERIAL', length:'', nullable:false, default:'', primaryKey:true, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'', comment:'' },
+      { name:'name', type:'VARCHAR', length:'255', nullable:false, default:'', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'', comment:'' },
+      { name:'email', type:'VARCHAR', length:'255', nullable:true, default:'', primaryKey:false, unique:true, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'', comment:'' },
+      { name:'created_at', type:'TIMESTAMP', length:'', nullable:true, default:'NOW()', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'', comment:'' }
     ];
   }
   updateColCount();
-  let html = '<table class="grid-table"><thead><tr><th style="width:24px">#</th><th style="width:24%">Column Name</th><th style="width:14%">Type</th><th style="width:50px">Len</th><th style="width:40px">Null</th><th style="width:14%">Default</th><th style="width:30px">PK</th><th style="width:30px">UK</th><th style="width:30px">FK</th><th style="width:40px"></th></tr></thead><tbody>';
+  let html = '<table class="grid-table"><thead><tr><th style="width:24px">#</th><th style="width:16%">Column Name</th><th style="width:12%">Type</th><th style="width:48px">Len</th><th style="width:36px">Null</th><th style="width:12%">Default</th><th style="width:30px">PK</th><th style="width:30px">UK</th><th style="width:30px">FK</th><th style="width:16%">Comment</th><th style="width:40px"></th></tr></thead><tbody>';
   state.columns.forEach(function(col, i) {
     html += '<tr><td class="col-order"><span class="move-btn" onclick="moveColumn('+i+',-1)">&#x25B2;</span><span class="move-btn" onclick="moveColumn('+i+',1)">&#x25BC;</span></td>';
     html += '<td><input value="'+escapeHtml(col.name)+'" oninput="updateCol('+i+',\'name\',this.value)" placeholder="column_name"></td>';
@@ -871,6 +873,7 @@ function renderTableDesigner() {
     html += '<td style="text-align:center"><input type="checkbox" '+(col.primaryKey?'checked':'')+' onchange="updateCol('+i+',\'primaryKey\',this.checked)"></td>';
     html += '<td style="text-align:center"><input type="checkbox" '+(col.unique?'checked':'')+' onchange="updateCol('+i+',\'unique\',this.checked)"></td>';
     html += '<td style="text-align:center"><input type="checkbox" '+(col.foreignKey?'checked':'')+' onchange="toggleFK('+i+',this.checked)"></td>';
+    html += '<td><input value="'+escapeHtml(col.comment||'')+'" oninput="updateCol('+i+',\'comment\',this.value)" placeholder="comment"></td>';
     html += '<td class="col-actions"><button onclick="deleteColumn('+i+')">&#x2715;</button></td></tr>';
     if (col.foreignKey) {
       html += '<tr class="fk-detail-row"><td colspan="10" style="padding:4px 8px 8px 32px;background:var(--surface)"><span class="fk-ref-group"><span style="color:var(--text-muted);font-size:11px">REFERENCES</span><input class="fk-input" value="'+escapeHtml(col.refTable||'')+'" oninput="updateCol('+i+',\'refTable\',this.value)" placeholder="table"><span style="color:var(--text-muted)">.</span><input class="fk-input" value="'+escapeHtml(col.refColumn||'')+'" oninput="updateCol('+i+',\'refColumn\',this.value)" placeholder="column" style="width:90px"><span style="color:var(--text-muted);font-size:11px;margin-left:12px">ON DELETE</span><select onchange="updateCol('+i+',\'onDelete\',this.value)" style="font-size:11px;padding:1px 4px"><option value="">--</option><option value="CASCADE" '+(col.onDelete==='CASCADE'?'selected':'')+'>CASCADE</option><option value="SET NULL" '+(col.onDelete==='SET NULL'?'selected':'')+'>SET NULL</option><option value="RESTRICT" '+(col.onDelete==='RESTRICT'?'selected':'')+'>RESTRICT</option><option value="NO ACTION" '+(col.onDelete==='NO ACTION'?'selected':'')+'>NO ACTION</option></select><span style="color:var(--text-muted);font-size:11px;margin-left:8px">ON UPDATE</span><select onchange="updateCol('+i+',\'onUpdate\',this.value)" style="font-size:11px;padding:1px 4px"><option value="">--</option><option value="CASCADE" '+(col.onUpdate==='CASCADE'?'selected':'')+'>CASCADE</option><option value="SET NULL" '+(col.onUpdate==='SET NULL'?'selected':'')+'>SET NULL</option><option value="RESTRICT" '+(col.onUpdate==='RESTRICT'?'selected':'')+'>RESTRICT</option><option value="NO ACTION" '+(col.onUpdate==='NO ACTION'?'selected':'')+'>NO ACTION</option></select></span></td></tr>';
@@ -1013,154 +1016,472 @@ function switchPreviewTab(tab, btn) {
   document.getElementById('buildOutput').style.display = tab === 'build' ? '' : 'none';
   document.getElementById('explainOutput').style.display = tab === 'explain' ? '' : 'none';
 }
-// --- QBE --------------------------------------------------
-const QBE_DEFAULTS = { tables:[], joins:[], conditions:[], groupBy:[], having:[], orderBy:[], selectMode:'all', limit:'', offset:'', unionType:'', unionMode:'', keywords:['SELECT','FROM','WHERE','JOIN','ON','LEFT','RIGHT','INNER','OUTER','CROSS','FULL','GROUP','BY','HAVING','ORDER','ASC','DESC','LIMIT','OFFSET','UNION','ALL','DISTINCT','AS','IN','NOT','NULL','IS','AND','OR','BETWEEN','LIKE','ILIKE','EXISTS','ANY','ALL','INNER JOIN','LEFT JOIN','RIGHT JOIN','FULL OUTER JOIN','CROSS JOIN','LEFT OUTER JOIN','RIGHT OUTER JOIN','NATURAL JOIN'] };
-var qbeState = JSON.parse(JSON.stringify(QBE_DEFAULTS));
+// --- QBE (Canvas-based Query Builder) ----------------------
+var qbeState = {
+  queryType: 'SELECT', tables: [], joins: [], whererows: [], groupByRows: [],
+  havingRows: [], orderByRows: [], limit: 100, offset: 0, selectedCols: [], union: null
+};
+// qbeTablesCache, qbeTableCounter, qbeGeneratedSql shared from top-level let
 
 function initQBE() {
   if (!qbeState.tables.length) {
-    qbeState.tables = [{name:'users',alias:'u',schema:'public'},{name:'orders',alias:'o',schema:'public'}];
+    qbeState.tables = [{name:'users',alias:'u',schema:'public',key:'public.users.1'},{name:'orders',alias:'o',schema:'public',key:'public.orders.2'}];
+    qbeState.joins = [{type:'INNER',condition:'users.id = orders.user_id'}];
+    qbeState.whererows = [{field:'users.is_active',operator:'=',value:'TRUE',logic:'AND',expression:''}];
+    qbeState.selectedCols = [{tableKey:'public.users',columnName:'id',alias:'',expression:''},{tableKey:'public.users',columnName:'username',alias:'',expression:''},{tableKey:'public.orders',columnName:'total',alias:'',expression:''}];
   }
-  renderQBE();
-  renderJoinUI();
-  renderConditionUI();
-  renderGroupUI();
-  renderOrderUI();
-}
-function tabClick(tab, name) {
-  document.querySelectorAll('.qbe-tab').forEach(function(t){t.classList.remove('active');});
-  document.querySelectorAll('.qbe-pane').forEach(function(p){p.style.display='none';});
-  document.querySelector('.qbe-tab[data-tab="'+tab+'"]').classList.add('active');
-  document.getElementById(name).style.display='';
-}
-function renderQBE() {
-  const container = document.getElementById('qbeTables');
-  let html = '';
-  qbeState.tables.forEach(function(t,i){
-    html += '<div class="qbe-table-item"><span class="qbe-table-remove" onclick="qbeRemoveTable('+i+')">&#x2716;</span><input value="'+escapeHtml(t.name||'')+'" placeholder="table" oninput="qbeState.tables['+i+'].name=this.value"><span>.</span><input value="'+escapeHtml(t.alias||'')+'" placeholder="alias" style="width:80px" oninput="qbeState.tables['+i+'].alias=this.value"><span style="margin-left:8px"><select onchange="qbeState.tables['+i+'].schema=this.value"><option value="">(no schema)</option><option value="public" '+(t.schema==='public'?'selected':'')+'>public</option></select></span></div>';
-  });
-  container.innerHTML = html;
-  document.getElementById('limitInput').value = qbeState.limit;
-  document.getElementById('offsetInput').value = qbeState.offset;
-  document.getElementById('selectAllRadio').checked = qbeState.selectMode==='all';
-  document.getElementById('selectDistinctRadio').checked = qbeState.selectMode==='distinct';
-}
-function qbeAddTable() { qbeState.tables.push({name:'',alias:'',schema:''}); renderQBE(); }
-function qbeRemoveTable(i) { qbeState.tables.splice(i,1); renderQBE(); renderJoinUI(); }
-function renderJoinUI() {
-  const container = document.getElementById('qbeJoins');
-  let html = '';
-  qbeState.joins.forEach(function(j,i){
-    html += '<div class="qbe-join-line"><select onchange="qbeState.joins['+i+'].type=this.value"><option value="INNER" '+(j.type==='INNER'?'selected':'')+'>INNER</option><option value="LEFT" '+(j.type==='LEFT'?'selected':'')+'>LEFT</option><option value="RIGHT" '+(j.type==='RIGHT'?'selected':'')+'>RIGHT</option><option value="FULL" '+(j.type==='FULL'?'selected':'')+'>FULL</option><option value="CROSS" '+(j.type==='CROSS'?'selected':'')+'>CROSS</option></select><input value="'+escapeHtml(j.table||'')+'" placeholder="table" oninput="qbeState.joins['+i+'].table=this.value"><span style="color:var(--text-muted)">ON</span><input value="'+escapeHtml(j.on||'')+'" placeholder="condition" style="flex:1" oninput="qbeState.joins['+i+'].on=this.value"><button class="btn btn-sm" onclick="qbeRemoveJoin('+i+')">&#x2716;</button></div>';
-  });
-  container.innerHTML = html;
-}
-function qbeAddJoin() { qbeState.joins.push({type:'INNER',table:'',on:''}); renderJoinUI(); }
-function qbeRemoveJoin(i) { qbeState.joins.splice(i,1); renderJoinUI(); }
-function renderConditionUI() {
-  const container = document.getElementById('qbeConditions');
-  let html = '';
-  qbeState.conditions.forEach(function(c,i){
-    html += '<div class="qbe-condition-line"><input value="'+escapeHtml(c.field||'')+'" placeholder="field" oninput="qbeState.conditions['+i+'].field=this.value" style="width:140px"><select onchange="qbeState.conditions['+i+'].op=this.value"><option value="=" '+(c.op==='='?'selected':'')+'>=</option><option value="!=" '+(c.op==='!='?'selected':'')+'>!=</option><option value=">" '+(c.op==='>'?'selected':'')+'></option><option value=">=" '+(c.op==='>='?'selected':'')+'>>=</option><option value="<" '+(c.op==='<'?'selected':'')+'><</option><option value="<=" '+(c.op==='<='?'selected':'')+'><=</option><option value="LIKE" '+(c.op==='LIKE'?'selected':'')+'>LIKE</option><option value="ILIKE" '+(c.op==='ILIKE'?'selected':'')+'>ILIKE</option><option value="IN" '+(c.op==='IN'?'selected':'')+'>IN</option><option value="IS" '+(c.op==='IS'?'selected':'')+'>IS</option><option value="IS NOT" '+(c.op==='IS NOT'?'selected':'')+'>IS NOT</option><option value="BETWEEN" '+(c.op==='BETWEEN'?'selected':'')+'>BETWEEN</option></select><input value="'+escapeHtml(c.value||'')+'" placeholder="value" style="flex:1" oninput="qbeState.conditions['+i+'].value=this.value"><select onchange="qbeState.conditions['+i+'].connector=this.value" style="width:60px"><option value="AND" '+(c.connector!=='OR'?'selected':'')+'>AND</option><option value="OR" '+(c.connector==='OR'?'selected':'')+'>OR</option></select><button class="btn btn-sm" onclick="qbeRemoveCondition('+i+')">&#x2716;</button></div>';
-  });
-  container.innerHTML = html;
-}
-function qbeAddCondition() { qbeState.conditions.push({field:'',op:'=',value:'',connector:'AND'}); renderConditionUI(); }
-function qbeRemoveCondition(i) { qbeState.conditions.splice(i,1); renderConditionUI(); }
-function renderGroupUI() {
-  const container = document.getElementById('qbeGroupBy');
-  let html = '';
-  qbeState.groupBy.forEach(function(g,i){
-    html += '<div class="qbe-group-item"><input value="'+escapeHtml(g||'')+'" placeholder="column" oninput="qbeState.groupBy['+i+']=this.value"><button class="btn btn-sm" onclick="qbeRemoveGroup('+i+')">&#x2716;</button></div>';
-  });
-  if (!qbeState.groupBy.length) html += '<div style="color:var(--text-muted);font-size:11px;padding:6px 8px">No GROUP BY columns</div>';
-  container.innerHTML = html;
-  const hc = document.getElementById('qbeHaving');
-  let hhtml = '';
-  qbeState.having.forEach(function(h,i){
-    hhtml += '<div class="qbe-condition-line"><input value="'+escapeHtml(h.field||'')+'" placeholder="agg" style="width:140px" oninput="qbeState.having['+i+'].field=this.value"><select onchange="qbeState.having['+i+'].op=this.value"><option value="=" '+(h.op==='='?'selected':'')+'>=</option><option value=">" '+(h.op==='>'?'selected':'')+'></option><option value="<" '+(h.op==='<'?'selected':'')+'><</option><option value=">=" '+(h.op==='>='?'selected':'')+'>>=</option><option value="<=" '+(h.op==='<='?'selected':'')+'><=</option></select><input value="'+escapeHtml(h.value||'')+'" placeholder="value" style="flex:1" oninput="qbeState.having['+i+'].value=this.value"><button class="btn btn-sm" onclick="qbeRemoveHaving('+i+')">&#x2716;</button></div>';
-  });
-  if (!qbeState.having.length) hhtml += '<div style="color:var(--text-muted);font-size:11px;padding:6px 8px">No HAVING conditions</div>';
-  hc.innerHTML = hhtml;
-}
-function qbeAddGroup() { qbeState.groupBy.push(''); renderGroupUI(); }
-function qbeRemoveGroup(i) { qbeState.groupBy.splice(i,1); renderGroupUI(); }
-function qbeAddHaving() { qbeState.having.push({field:'',op:'=',value:''}); renderGroupUI(); }
-function qbeRemoveHaving(i) { qbeState.having.splice(i,1); renderGroupUI(); }
-function renderOrderUI() {
-  const container = document.getElementById('qbeOrderBy');
-  let html = '';
-  qbeState.orderBy.forEach(function(o,i){
-    html += '<div class="qbe-order-item"><input value="'+escapeHtml(o.column||'')+'" placeholder="column" oninput="qbeState.orderBy['+i+'].column=this.value"><select onchange="qbeState.orderBy['+i+'].dir=this.value"><option value="ASC" '+(o.dir!=='DESC'?'selected':'')+'>ASC</option><option value="DESC" '+(o.dir==='DESC'?'selected':'')+'>DESC</option></select><button class="btn btn-sm" onclick="qbeRemoveOrder('+i+')">&#x2716;</button></div>';
-  });
-  if (!qbeState.orderBy.length) html += '<div style="color:var(--text-muted);font-size:11px;padding:6px 8px">No ORDER BY columns</div>';
-  container.innerHTML = html;
-}
-function qbeAddOrder() { qbeState.orderBy.push({column:'',dir:'ASC'}); renderOrderUI(); }
-function qbeRemoveOrder(i) { qbeState.orderBy.splice(i,1); renderOrderUI(); }
-function qbeInsertKeyword(k) {
-  var ta = document.getElementById('qbeSelectCols');
-  var start = ta.selectionStart, end = ta.selectionEnd;
-  var text = ta.value;
-  ta.value = text.substring(0,start)+k+' '+text.substring(end);
-  ta.selectionStart = ta.selectionEnd = start+k.length+1;
-  ta.focus();
+  qbeRenderCanvas();
 }
 
-async function qbeBuild() {
-  const qbe = { tables:qbeState.tables.filter(function(t){return t.name;}), joins:qbeState.joins.filter(function(j){return j.table;}), conditions:qbeState.conditions.filter(function(c){return c.field;}), groupBy:qbeState.groupBy.filter(function(g){return g;}), having:qbeState.having.filter(function(h){return h.field;}), orderBy:qbeState.orderBy.filter(function(o){return o.column;}), limit:parseInt(document.getElementById('limitInput').value)||0, offset:parseInt(document.getElementById('offsetInput').value)||0, selectMode:qbeState.selectMode, selectColumns:document.getElementById('qbeSelectCols').value||'*', unionType:qbeState.unionType, unionMode:qbeState.unionMode, unionSelect:document.getElementById('qbeUnionSelect').value||'' };
-  const container = document.getElementById('qbeResults');
-  container.innerHTML = '<div style="padding:12px;color:var(--text-muted)">Building query...</div>';
-  try {
-    const resp = await fetch('/api/design/query-build', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({qbe:qbe}) });
-    const json = await resp.json();
-    if (!json.success) throw new Error(json.error?.message||'Build failed');
-    const data = json.data;
-    document.getElementById('qbeOutputContainer').style.display = '';
-    for (const key of ENGINE_KEYS) {
-      const el = document.getElementById('qbeSql'+key.charAt(0).toUpperCase()+key.slice(1));
-      if (data[key]) el.value = data[key];
-    }
-    showToast('Query built successfully','success');
-  } catch (err) { container.innerHTML = '<div class="explain-error">Error: '+escapeHtml(err.message)+'</div>'; showToast('Query build failed','error'); }
-}
-
-async function qbeExecute() {
-  const engine = document.getElementById('qbeEngine').value;
-  const ta = document.getElementById('qbeSql'+engine.charAt(0).toUpperCase()+engine.slice(1));
-  const sql = ta.value.trim();
-  if (!sql) { showToast('Build a query first','error'); return; }
-  const target = { engine:engine, host:document.getElementById('buildHost').value||'localhost', port:parseInt(document.getElementById('buildPort').value)||5432, database:document.getElementById('buildDb').value||'', user:document.getElementById('buildUser').value||'', password:document.getElementById('buildPass').value||'' };
-  const container = document.getElementById('qbeResults');
-  container.innerHTML = '<div style="padding:12px;color:var(--text-muted)">Executing...</div>';
-  try {
-    const resp = await fetch('/api/design/execute', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:sql, target:target}) });
-    const json = await resp.json();
-    if (json.error) throw new Error(json.error);
-    const cols = json.columns || [];
-    const rows = json.rows || [];
-    let html = '<div style="margin-bottom:8px"><span style="color:var(--text-muted)">'+rows.length+' rows'+(json.rowCount!==undefined?' ('+json.rowCount+' total)':'')+(json.affectedRows!==undefined?' | affected: '+json.affectedRows:'')+'</span></div>';
-    if (cols.length) {
-      html += '<table class="explain-table"><thead><tr>';
-      for (var ci=0;ci<cols.length;ci++) html += '<th>'+escapeHtml(cols[ci])+'</th>';
-      html += '</tr></thead><tbody>';
-      var limit = Math.min(rows.length, 500);
-      for (var ri=0;ri<limit;ri++) {
-        html += '<tr>';
-        for (var ci2=0;ci2<cols.length;ci2++) html += '<td>'+(rows[ri][ci2]!=null?escapeHtml(String(rows[ri][ci2])):'<span style="color:var(--text-muted)">NULL</span>')+'</td>';
-        html += '</tr>';
+function qbeRenderCanvas() {
+  var scroll = document.getElementById('qbeCanvasScroll');
+  var empty = document.getElementById('qbeEmptyCanvas');
+  if (qbeState.tables.length === 0) {
+    if (empty) empty.style.display = '';
+    if (scroll) scroll.innerHTML = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  var html = '';
+  qbeState.tables.forEach(function(t, i) {
+    var key = t.schema + '.' + t.name;
+    var selCols = qbeState.selectedCols.filter(function(c){return c.tableKey === key;});
+    html += '<div class="qbe-tbl-card"><div class="qbe-tbl-card-header"><span class="tname">'+escapeHtml(t.schema)+'.'+escapeHtml(t.name)+'</span><span class="talias">AS</span><input value="'+escapeHtml(t.alias)+'" oninput="qbeUpdateAlias('+i+',this.value)" placeholder="alias"><span class="tclose" onclick="qbeRemoveTable('+i+')" title="Remove table">&#x2715;</span></div><div class="qbe-tbl-cols" id="qbeTblCols_'+i+'">';
+    qbeTablesCache.forEach(function(s) {
+      if (s.schema === t.schema) {
+        s.tables.forEach(function(tbl) {
+          if (tbl.name === t.name) {
+            (tbl.columns||[]).forEach(function(col) {
+              var isSelected = selCols.some(function(c){return c.columnName===col.name;});
+              var cls = (isSelected?' selected':'')+'';
+              html += '<span class="col-chip'+cls+'" onclick="qbeToggleColSelect('+i+',\''+escapeHtml(col.name)+'\')" title="'+escapeHtml(col.type||'')+'">'+escapeHtml(col.name)+'</span>';
+            });
+          }
+        });
       }
-      html += '</tbody></table>';
-      if (rows.length > 500) html += '<div style="padding:8px;color:var(--text-muted);font-size:11px">Showing 500 of '+rows.length+' rows</div>';
-    } else {
-      html += '<div style="padding:8px;color:var(--text-muted)">Query executed'+(json.message?': '+json.message:'')+'</div>';
+    });
+    html += '</div></div>';
+    if (i < qbeState.tables.length - 1) {
+      var join = qbeState.joins[i];
+      html += '<div class="qbe-join"><span style="color:var(--text-muted);font-size:10px">JOIN</span><select onchange="qbeUpdateJoin('+i+',\'type\',this.value)"><option value="INNER" '+(join?.type==='INNER'?'selected':'')+'>INNER JOIN</option><option value="LEFT" '+(join?.type==='LEFT'?'selected':'')+'>LEFT JOIN</option><option value="RIGHT" '+(join?.type==='RIGHT'?'selected':'')+'>RIGHT JOIN</option><option value="FULL" '+(join?.type==='FULL'?'selected':'')+'>FULL JOIN</option><option value="CROSS" '+(join?.type==='CROSS'?'selected':'')+'>CROSS JOIN</option></select><span style="color:var(--text-muted);font-size:10px">ON</span><input value="'+(join?.condition||'')+'" oninput="qbeUpdateJoin('+i+',\'condition\',this.value)" placeholder="'+t.alias+'.col = '+(qbeState.tables[i+1]?.alias||'?')+'.col"><span class="jdel" onclick="qbeClearJoin('+i+')">&#x2715;</span></div>';
     }
-    container.innerHTML = html;
-    showToast('Query executed: '+rows.length+' rows returned','success');
-  } catch (err) { container.innerHTML = '<div class="explain-error">Error: '+escapeHtml(err.message)+'</div>'; showToast('Execute failed: '+err.message,'error'); }
+  });
+  html += '<div class="qbe-section"><div class="qbe-section-title"><span>WHERE</span><button class="btn" onclick="qbeAddWhere(\'\',\'=\',\'\')">+ Add</button><button class="btn" onclick="qbeClearWhere()">Clear</button></div><div id="qbeWhereRows">'+qbeState.whererows.map(function(w,i){return qbeRenderWhereRow(i);}).join('')+'</div></div>';
+  html += '<div class="qbe-section"><div class="qbe-section-title"><span>GROUP BY</span><button class="btn" onclick="qbeAddGroupBy()">+ Add</button><button class="btn" onclick="qbeClearGroupBy()">Clear</button></div><div id="qbeGroupByRows">'+qbeState.groupByRows.map(function(g,i){return qbeRenderGroupByRow(i);}).join('')+'</div></div>';
+  if (qbeState.groupByRows.length > 0) {
+    html += '<div class="qbe-section"><div class="qbe-section-title"><span>HAVING</span><button class="btn" onclick="qbeAddHaving()">+ Add</button><button class="btn" onclick="qbeClearHaving()">Clear</button></div><div id="qbeHavingRows">'+qbeState.havingRows.map(function(h,i){return qbeRenderHavingRow(i);}).join('')+'</div></div>';
+  }
+  html += '<div class="qbe-section"><div class="qbe-section-title"><span>ORDER BY</span><button class="btn" onclick="qbeAddOrderBy()">+ Add</button><button class="btn" onclick="qbeClearOrderBy()">Clear</button></div><div id="qbeOrderByRows">'+qbeState.orderByRows.map(function(o,i){return qbeRenderOrderByRow(i);}).join('')+'</div></div>';
+  if (qbeState.union) {
+    html += '<div class="qbe-section" style="border:1px solid var(--purple);border-radius:var(--radius);padding:8px;margin-top:8px"><div class="qbe-section-title"><span style="color:var(--purple)">'+qbeState.union.type+'</span><button class="btn" onclick="qbeRemoveUnion()">Remove</button></div><pre style="font-size:11px;margin-top:4px;background:var(--bg);padding:6px;border-radius:3px;white-space:pre-wrap">'+escapeHtml(qbeState.union.sql||'')+'</pre></div>';
+  }
+  scroll.innerHTML = html;
 }
 
-function qbeClear() { qbeState = JSON.parse(JSON.stringify(QBE_DEFAULTS)); initQBE(); document.getElementById('qbeSelectCols').value=''; document.getElementById('qbeUnionSelect').value=''; document.getElementById('qbeOutputContainer').style.display='none'; document.getElementById('qbeResults').innerHTML=''; }
+function qbeRenderWhereRow(i) {
+  var w = qbeState.whererows[i];
+  if (w.expression) {
+    return '<div class="qbe-cond-row"><input type="text" value="'+escapeHtml(w.expression)+'" oninput="qbeUpdateWhere('+i+',\'expression\',this.value)" placeholder="expression" style="min-width:200px"><span class="cdel" onclick="qbeRemoveWhere('+i+')">&#x2715;</span>'+(i<qbeState.whererows.length-1?'<span class="clogic">'+(w.logic||'AND')+'</span>':'')+'</div>';
+  }
+  return '<div class="qbe-cond-row"><select onchange="qbeUpdateWhere('+i+',\'field\',this.value)"><option value="">field</option>'+qbeGetFieldOptions(w.field)+'</select><select onchange="qbeUpdateWhere('+i+',\'operator\',this.value)">'+['=','<>','>','<','>=','<=','LIKE','NOT LIKE','IN','NOT IN','BETWEEN','IS NULL','IS NOT NULL'].map(function(o){return '<option '+(w.operator===o?'selected':'')+'>'+o+'</option>';}).join('')+'</select><input type="text" value="'+escapeHtml(w.value||'')+'" oninput="qbeUpdateWhere('+i+',\'value\',this.value)" placeholder="value"><span class="cdel" onclick="qbeRemoveWhere('+i+')">&#x2715;</span>'+(i<qbeState.whererows.length-1?'<span class="clogic">'+(w.logic||'AND')+'</span>':'')+'</div>';
+}
+
+function qbeRenderGroupByRow(i) {
+  var g = qbeState.groupByRows[i];
+  if (g.expression) {
+    return '<div class="qbe-cond-row"><input type="text" value="'+escapeHtml(g.expression)+'" oninput="qbeUpdateGroupBy('+i+',\'expression\',this.value)" placeholder="expression" style="min-width:200px"><span class="cdel" onclick="qbeRemoveGroupBy('+i+')">&#x2715;</span></div>';
+  }
+  return '<div class="qbe-cond-row"><select onchange="qbeUpdateGroupBy('+i+',\'field\',this.value)"><option value="">field</option>'+qbeGetFieldOptions(g.field)+'</select><span class="cdel" onclick="qbeRemoveGroupBy('+i+')">&#x2715;</span></div>';
+}
+
+function qbeRenderHavingRow(i) {
+  var h = qbeState.havingRows[i];
+  if (h.expression) {
+    return '<div class="qbe-cond-row"><input type="text" value="'+escapeHtml(h.expression)+'" oninput="qbeUpdateHaving('+i+',\'expression\',this.value)" placeholder="expression" style="min-width:200px"><span class="cdel" onclick="qbeRemoveHaving('+i+')">&#x2715;</span></div>';
+  }
+  return '<div class="qbe-cond-row"><input type="text" value="'+escapeHtml(h.field||'')+'" oninput="qbeUpdateHaving('+i+',\'field\',this.value)" placeholder="COUNT(*)" style="min-width:120px"><select onchange="qbeUpdateHaving('+i+',\'operator\',this.value)">'+['>','<','>=','<=','=','<>'].map(function(o){return '<option '+(h.operator===o?'selected':'')+'>'+o+'</option>';}).join('')+'</select><input type="text" value="'+escapeHtml(h.value||'')+'" oninput="qbeUpdateHaving('+i+',\'value\',this.value)" placeholder="value" style="width:80px"><span class="cdel" onclick="qbeRemoveHaving('+i+')">&#x2715;</span></div>';
+}
+
+function qbeRenderOrderByRow(i) {
+  var o = qbeState.orderByRows[i];
+  if (o.expression) {
+    return '<div class="qbe-cond-row"><input type="text" value="'+escapeHtml(o.expression)+'" oninput="qbeUpdateOrderBy('+i+',\'expression\',this.value)" placeholder="expression" style="min-width:200px"><select onchange="qbeUpdateOrderBy('+i+',\'direction\',this.value)"><option value="ASC" '+(o.direction==='ASC'?'selected':'')+'>ASC</option><option value="DESC" '+(o.direction==='DESC'?'selected':'')+'>DESC</option></select><span class="cdel" onclick="qbeRemoveOrderBy('+i+')">&#x2715;</span></div>';
+  }
+  return '<div class="qbe-cond-row"><select onchange="qbeUpdateOrderBy('+i+',\'field\',this.value)"><option value="">field</option>'+qbeGetFieldOptions(o.field)+'</select><select onchange="qbeUpdateOrderBy('+i+',\'direction\',this.value)"><option value="ASC" '+(o.direction==='ASC'?'selected':'')+'>ASC</option><option value="DESC" '+(o.direction==='DESC'?'selected':'')+'>DESC</option></select><span class="cdel" onclick="qbeRemoveOrderBy('+i+')">&#x2715;</span></div>';
+}
+
+function qbeGetFieldOptions(selected) {
+  var opts = [];
+  qbeState.tables.forEach(function(t) {
+    qbeTablesCache.forEach(function(s) {
+      if (s.schema === t.schema) {
+        s.tables.forEach(function(tbl) {
+          if (tbl.name === t.name) {
+            (tbl.columns||[]).forEach(function(col) {
+              var val = t.alias+'.'+col.name;
+              opts.push('<option value="'+val+'" '+(selected===val?'selected':'')+'>'+t.alias+'.'+col.name+' ('+col.type+')</option>');
+            });
+          }
+        });
+      }
+    });
+  });
+  return opts.join('');
+}
+
+// --- Table card interactions -------------------------------
+function qbeUpdateAlias(index, alias) {
+  if (index < qbeState.tables.length) { qbeState.tables[index].alias = alias; qbeGenerate(); }
+}
+
+function qbeToggleColSelect(tblIndex, colName) {
+  var t = qbeState.tables[tblIndex]; if (!t) return;
+  var key = t.schema + '.' + t.name;
+  var idx = qbeState.selectedCols.findIndex(function(c){return c.tableKey===key&&c.columnName===colName;});
+  if (idx >= 0) { qbeState.selectedCols.splice(idx, 1); }
+  else { qbeState.selectedCols.push({tableKey:key, columnName:colName, alias:'', expression:''}); }
+  qbeRenderCanvas(); qbeGenerate();
+}
+
+// --- JOIN operations ---------------------------------------
+function qbeUpdateJoin(index, field, value) {
+  while (qbeState.joins.length <= index) { qbeState.joins.push({type:'INNER', condition:''}); }
+  qbeState.joins[index][field] = value; qbeGenerate();
+}
+
+function qbeClearJoin(index) {
+  if (index < qbeState.joins.length) { qbeState.joins.splice(index, 1); qbeRenderCanvas(); qbeGenerate(); }
+}
+
+function qbeAddJoin(type) {
+  var idx = qbeState.joins.length;
+  while (qbeState.joins.length < qbeState.tables.length - 1) { qbeState.joins.push({type:'INNER', condition:''}); }
+  qbeState.joins[idx] = {type:type||'CROSS', condition:''};
+  qbeRenderCanvas(); qbeGenerate();
+}
+
+function qbeSetJoinType(index, type) {
+  while (qbeState.joins.length <= index) { qbeState.joins.push({type:'INNER', condition:''}); }
+  qbeState.joins[index].type = type; qbeRenderCanvas(); qbeGenerate();
+}
+
+// --- WHERE operations --------------------------------------
+function qbeAddWhere(field, op, value) {
+  qbeState.whererows.push({field:field||'', operator:op||'=', value:value||'', logic:'AND', expression:''});
+  qbeRenderCanvas(); qbeGenerate();
+}
+
+function qbeUpdateWhere(i, field, value) {
+  if (i < qbeState.whererows.length) { qbeState.whererows[i][field] = value; qbeGenerate(); }
+}
+
+function qbeRemoveWhere(i) { qbeState.whererows.splice(i, 1); qbeRenderCanvas(); qbeGenerate(); }
+function qbeClearWhere() { qbeState.whererows = []; qbeRenderCanvas(); qbeGenerate(); }
+
+function qbeSetWhereOp(op) {
+  if (qbeState.whererows.length === 0) qbeAddWhere('', op, '');
+  else qbeUpdateWhere(qbeState.whererows.length-1, 'operator', op);
+}
+
+// --- GROUP BY operations -----------------------------------
+function qbeAddGroupBy() { qbeState.groupByRows.push({field:'', expression:''}); qbeRenderCanvas(); qbeGenerate(); }
+function qbeUpdateGroupBy(i, field, value) { if(i<qbeState.groupByRows.length){qbeState.groupByRows[i][field]=value;qbeGenerate();} }
+function qbeRemoveGroupBy(i) { qbeState.groupByRows.splice(i,1); qbeRenderCanvas(); qbeGenerate(); }
+function qbeClearGroupBy() { qbeState.groupByRows = []; qbeState.havingRows = []; qbeRenderCanvas(); qbeGenerate(); }
+
+// --- HAVING operations -------------------------------------
+function qbeAddHaving() { qbeState.havingRows.push({field:'COUNT(*)', operator:'>', value:'0', expression:''}); qbeRenderCanvas(); qbeGenerate(); }
+function qbeUpdateHaving(i, field, value) { if(i<qbeState.havingRows.length){qbeState.havingRows[i][field]=value;qbeGenerate();} }
+function qbeRemoveHaving(i) { qbeState.havingRows.splice(i,1); qbeRenderCanvas(); qbeGenerate(); }
+function qbeClearHaving() { qbeState.havingRows = []; qbeRenderCanvas(); qbeGenerate(); }
+
+// --- ORDER BY operations -----------------------------------
+function qbeAddOrderBy() { qbeState.orderByRows.push({field:'', direction:'ASC', expression:''}); qbeRenderCanvas(); qbeGenerate(); }
+function qbeUpdateOrderBy(i, field, value) { if(i<qbeState.orderByRows.length){qbeState.orderByRows[i][field]=value;qbeGenerate();} }
+function qbeRemoveOrderBy(i) { qbeState.orderByRows.splice(i,1); qbeRenderCanvas(); qbeGenerate(); }
+function qbeClearOrderBy() { qbeState.orderByRows = []; qbeRenderCanvas(); qbeGenerate(); }
+
+// --- UNION operations --------------------------------------
+function qbeAddUnion(type) { qbeState.union = {type:type||'UNION', sql:'SELECT ...'}; qbeRenderCanvas(); qbeGenerate(); }
+function qbeRemoveUnion() { qbeState.union = null; qbeRenderCanvas(); qbeGenerate(); }
+
+// --- Query type / Keyword insert ---------------------------
+function qbeSetQueryType(type) { document.getElementById('qbeQueryType').value = type; qbeState.queryType = type; qbeGenerate(); }
+
+function qbeKwInsert(kw) {
+  if (kw === 'WHERE') { qbeAddWhere('','=',''); }
+  else if (kw === 'GROUP BY') { qbeAddGroupBy(); }
+  else if (kw === 'HAVING') { qbeAddHaving(); }
+  else if (kw === 'ORDER BY') { qbeAddOrderBy(); }
+  else if (kw === 'LIMIT') { document.getElementById('qbeLimit').focus(); }
+  else if (kw === 'OFFSET') { document.getElementById('qbeOffset').focus(); }
+  else if (kw.startsWith('COUNT')||kw.startsWith('SUM')||kw.startsWith('AVG')||kw.startsWith('MIN')||kw.startsWith('MAX')) {
+    if (qbeState.tables.length > 0) { qbeState.selectedCols.push({tableKey:qbeState.tables[0].schema+'.'+qbeState.tables[0].name, columnName:kw, alias:'', expression:kw.replace('()','(col)')}); qbeRenderCanvas(); qbeGenerate(); }
+  }
+}
+
+// --- SQL Generation (debounced) ----------------------------
+var qbeGenTimer = null;
+function qbeGenerate() { clearTimeout(qbeGenTimer); qbeGenTimer = setTimeout(qbeGenerateNow, 300); }
+
+async function qbeGenerateNow() {
+  var engine = document.getElementById('buildEngine').value||'postgresql';
+  var limit = parseInt(document.getElementById('qbeLimit').value)||0;
+  var offset = parseInt(document.getElementById('qbeOffset').value)||0;
+  var queryType = document.getElementById('qbeQueryType').value;
+  var qbePayload = {
+    queryType: queryType,
+    tables: qbeState.tables.map(function(t){return {schema:t.schema, name:t.name, alias:t.alias};}),
+    joins: qbeState.joins,
+    where: qbeState.whererows,
+    groupBy: qbeState.groupByRows.map(function(g){return g.expression||(g.field?g.field:'');}),
+    having: qbeState.havingRows,
+    orderBy: qbeState.orderByRows.map(function(o){return o.expression?{expression:o.expression,direction:o.direction}:{field:o.field,direction:o.direction};}),
+    columns: qbeState.selectedCols.map(function(c){return {table:c.tableKey, column:c.columnName, alias:c.alias, expression:c.expression};}),
+    limit: limit, offset: offset, union: qbeState.union
+  };
+  document.getElementById('qbeStatus').textContent = 'Generating...';
+  try {
+    var resp = await fetch('/api/design/query-build', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({qbe:qbePayload, engine:engine})});
+    var json = await resp.json();
+    if (!json.success) throw new Error(json.error?.message||'Generation failed');
+    qbeGeneratedSql = json.data.sql;
+    document.getElementById('qbeSqlText').textContent = qbeGeneratedSql;
+    document.getElementById('qbeSqlText').classList.remove('placeholder');
+    document.getElementById('qbeSqlInfo').textContent = (qbeGeneratedSql.length/1024).toFixed(1)+' KB | '+engine;
+    document.getElementById('qbeStatus').textContent = 'SQL generated';
+  } catch (err) {
+    document.getElementById('qbeSqlText').textContent = '-- Error: '+err.message;
+    document.getElementById('qbeStatus').textContent = 'Error';
+  }
+}
+
+// --- Execute / Syntax Check / Explain / Copy / Export ------
+async function qbeExecute() {
+  if (!qbeGeneratedSql||qbeGeneratedSql.startsWith('--')||qbeGeneratedSql.startsWith('/*')) { showToast('Build a query first','error'); return; }
+  var engine = document.getElementById('buildEngine').value||'postgresql';
+  var target = {engine:engine, host:document.getElementById('buildHost').value||'localhost', port:parseInt(document.getElementById('buildPort').value)||5432, database:document.getElementById('buildDb').value||'postgres', user:document.getElementById('buildUser').value||'postgres', password:document.getElementById('buildPass').value||''};
+  var btn = document.querySelector('.qbe-actions .btn-primary');
+  var origText = btn.textContent; btn.textContent = 'Executing...'; btn.disabled = true;
+  qbeCloseResults();
+  try {
+    var resp = await fetch('/api/design/execute', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:qbeGeneratedSql, target:target})});
+    var json = await resp.json();
+    if (!json.success) throw new Error(json.data?.error||json.error?.message||'Execute failed');
+    var data = json.data;
+    var resultsBody = document.getElementById('qbeResultsBody');
+    var resultsLabel = document.getElementById('qbeResultsLabel');
+    var resultsPanel = document.getElementById('qbeResults');
+    if (data.error) {
+      resultsLabel.textContent = 'Execute Error';
+      resultsBody.innerHTML = '<div class="qbe-results-msg error">'+escapeHtml(data.error)+'</div>';
+    } else if (data.queryType === 'SELECT') {
+      var cols = data.columns||[]; var rows = data.rows||[];
+      resultsLabel.textContent = 'SELECT - '+rows.length+' row(s)';
+      if (rows.length===0) { resultsBody.innerHTML = '<div class="qbe-results-msg success">No rows returned</div>'; }
+      else { var h='<table class="qbe-results-table"><thead><tr>'+cols.map(function(c){return '<th>'+escapeHtml(c)+'</th>';}).join('')+'</tr></thead><tbody>';
+        for (var ri=0;ri<rows.length;ri++) { h+='<tr>'+rows[ri].map(function(c){return '<td>'+(c!=null?escapeHtml(String(c)):'<span style="color:var(--text-muted)">NULL</span>')+'</td>';}).join('')+'</tr>'; }
+        h+='</tbody></table>'; resultsBody.innerHTML = h; }
+    } else {
+      resultsLabel.textContent = data.queryType||'Executed';
+      resultsBody.innerHTML = '<div class="qbe-results-msg success">'+escapeHtml(data.message||'Query executed successfully')+'</div>';
+    }
+    resultsPanel.classList.add('show');
+    showToast('Query executed','success');
+  } catch (err) { showToast('Execute error: '+err.message,'error');
+    document.getElementById('qbeResultsLabel').textContent = 'Error';
+    document.getElementById('qbeResultsBody').innerHTML = '<div class="qbe-results-msg error">'+escapeHtml(err.message)+'</div>';
+    document.getElementById('qbeResults').classList.add('show');
+  } finally { btn.textContent = origText; btn.disabled = false; }
+}
+
+async function qbeCheckSyntax() {
+  if (!qbeGeneratedSql||qbeGeneratedSql.startsWith('--')||qbeGeneratedSql.startsWith('/*')) { showToast('Build a query first','error'); return; }
+  var engine = document.getElementById('buildEngine').value||'postgresql';
+  var target = {engine:engine, host:document.getElementById('buildHost').value||'localhost', port:parseInt(document.getElementById('buildPort').value)||5432, database:document.getElementById('buildDb').value||'postgres', user:document.getElementById('buildUser').value||'postgres', password:document.getElementById('buildPass').value||''};
+  var badge = document.getElementById('qbeSyntaxBadge');
+  badge.innerHTML = '<span class="qbe-syntax-badge pending">checking...</span>';
+  try {
+    var resp = await fetch('/api/design/explain', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:qbeGeneratedSql, target:target, analyze:false})});
+    var json = await resp.json();
+    if (json.success) { badge.innerHTML = '<span class="qbe-syntax-badge pass">Syntax OK</span>'; showToast('Syntax check passed','success'); }
+    else { var msg = json.error?.message||'Syntax error';
+      badge.innerHTML = '<span class="qbe-syntax-badge fail">Syntax Error</span>';
+      showToast('Syntax error: '+msg,'error');
+      document.getElementById('qbeResultsLabel').textContent = 'Syntax Error';
+      document.getElementById('qbeResultsBody').innerHTML = '<div class="qbe-results-msg error">'+escapeHtml(msg)+'</div>';
+      document.getElementById('qbeResults').classList.add('show'); }
+  } catch (err) { badge.innerHTML = '<span class="qbe-syntax-badge fail">Error</span>'; showToast('Syntax check failed: '+err.message,'error'); }
+}
+
+function qbeCloseResults() {
+  document.getElementById('qbeResults').classList.remove('show');
+  document.getElementById('qbeResultsBody').innerHTML = '';
+  document.getElementById('qbeResultsLabel').textContent = 'Results';
+  document.getElementById('qbeSyntaxBadge').innerHTML = '';
+}
+
+async function qbeRunExplain() {
+  if (!qbeGeneratedSql||qbeGeneratedSql.startsWith('--')) { showToast('Build a query first','error'); return; }
+  var engine = document.getElementById('buildEngine').value||'postgresql';
+  var target = {engine:engine, host:document.getElementById('buildHost').value||'localhost', port:parseInt(document.getElementById('buildPort').value)||5432, database:document.getElementById('buildDb').value||'postgres', user:document.getElementById('buildUser').value||'postgres', password:document.getElementById('buildPass').value||''};
+  showToast('Running EXPLAIN...','');
+  try {
+    var resp = await fetch('/api/design/explain', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:qbeGeneratedSql, target:target, analyze:document.getElementById('explainAnalyze').checked})});
+    var json = await resp.json();
+    if (!json.success) throw new Error(json.error?.message);
+    var data = json.data; var container = document.getElementById('explainResults');
+    var h = '<div class="explain-header"><span>EXPLAIN - '+engine+'</span><span style="margin-left:16px">'+data.results.length+' result set(s)</span></div>';
+    for (var ri=0;ri<data.results.length;ri++) {
+      var r = data.results[ri];
+      if (r.columns&&r.rows) { h+='<table class="explain-table"><thead><tr>'+r.columns.map(function(c){return '<th>'+escapeHtml(c)+'</th>';}).join('')+'</tr></thead><tbody>';
+        for (var ri2=0;ri2<r.rows.length;ri2++) { h+='<tr>'+r.rows[ri2].map(function(c){return '<td>'+(c!=null?escapeHtml(String(c)):'')+'</td>';}).join('')+'</tr>'; }
+        h+='</tbody></table>'; }
+      else if (r.error) { h+='<div class="explain-error">'+escapeHtml(r.error)+'</div>'; }
+    }
+    container.innerHTML = h;
+    switchPreviewTab('explain', document.querySelectorAll('.preview-tabs button')[2]);
+    showToast('Explain complete: '+data.results.length+' result set(s)','success');
+  } catch (err) { showToast('Explain error: '+err.message,'error'); }
+}
+
+function qbeCopySql() {
+  if (!qbeGeneratedSql||qbeGeneratedSql.startsWith('--')) { showToast('No SQL to copy','error'); return; }
+  navigator.clipboard.writeText(qbeGeneratedSql).then(function(){showToast('SQL copied','success');}).catch(function(){showToast('Copy failed','error');});
+}
+
+function qbeExportSql() {
+  if (!qbeGeneratedSql||qbeGeneratedSql.startsWith('--')) { showToast('No SQL to export','error'); return; }
+  var header = '-- Generated by 4WD Schema Builder QBE\n-- '+new Date().toISOString()+'\n-- ============================================================\n\n';
+  var content = header + qbeGeneratedSql;
+  var blob = new Blob([content], {type:'application/sql;charset=utf-8'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'qbe_query.sql';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+  showToast('SQL exported: qbe_query.sql','success');
+}
+
+function qbeAddTable() { document.getElementById('qbeTableSearch').focus(); }
+
+function qbeClearAll() {
+  if (!confirm('Clear the entire query?')) return;
+  qbeState.tables = []; qbeState.joins = []; qbeState.whererows = [];
+  qbeState.groupByRows = []; qbeState.havingRows = []; qbeState.orderByRows = [];
+  qbeState.selectedCols = []; qbeState.union = null; qbeGeneratedSql = '';
+  document.getElementById('qbeSqlText').textContent = 'Click tables and configure your query';
+  document.getElementById('qbeSqlText').classList.add('placeholder');
+  document.getElementById('qbeSqlInfo').textContent = '';
+  document.getElementById('qbeStatus').textContent = '';
+  qbeRenderCanvas();
+}
+
+// --- Table Browser -----------------------------------------
+function qbeRefreshTables() {
+  var engine = document.getElementById('buildEngine').value;
+  var host = document.getElementById('buildHost').value||'localhost';
+  var port = parseInt(document.getElementById('buildPort').value)||5432;
+  var database = document.getElementById('buildDb').value||'postgres';
+  if (!engine||!host||!database) {
+    document.getElementById('qbeTableList').innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:11px;text-align:center">Configure DB connection in build config bar, then click Refresh</div>'; return;
+  }
+  document.getElementById('qbeTableList').innerHTML = '<div style="padding:20px;text-align:center"><span class="spinner"></span>Loading tables...</div>';
+  fetch('/api/design/schema-tables', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({target:{engine:engine, host:host, port:port, database:database, user:document.getElementById('buildUser').value||'postgres', password:document.getElementById('buildPass').value||''}})})
+    .then(function(r){return r.json();})
+    .then(function(json) {
+      if (!json.success) throw new Error(json.error?.message||'Introspection failed');
+      qbeTablesCache = json.data.tables;
+      qbeRenderTableBrowser();
+      document.getElementById('qbeStatus').textContent = 'Tables loaded: '+qbeTablesCache.reduce(function(a,s){return a+s.tables.length;},0);
+    })
+    .catch(function(err) {
+      document.getElementById('qbeTableList').innerHTML = '<div style="padding:20px;color:var(--red);font-size:11px;text-align:center">Error: '+escapeHtml(err.message)+'</div>';
+      document.getElementById('qbeStatus').textContent = 'Connection failed';
+      showToast('QBE: '+err.message,'error');
+    });
+}
+
+function qbeRenderTableBrowser() {
+  var container = document.getElementById('qbeTableList');
+  var searchVal = (document.getElementById('qbeTableSearch').value||'').toLowerCase();
+  var totalTables = 0; var html = '';
+  qbeTablesCache.forEach(function(schema) {
+    var schemaTables = schema.tables;
+    if (searchVal) schemaTables = schemaTables.filter(function(t){return t.name.toLowerCase().includes(searchVal);});
+    if (schemaTables.length === 0) return;
+    totalTables += schemaTables.length;
+    html += '<div class="qbe-schema"><div class="qbe-schema-header" onclick="qbeToggleSchema(this)"><span class="arrow open">&#x25B6;</span><span>'+escapeHtml(schema.schema)+'</span><span class="scount">('+schemaTables.length+')</span></div><div class="qbe-schema-tables">';
+    schemaTables.forEach(function(table) {
+      var isActive = qbeState.tables.some(function(t){return t.schema===schema.schema&&t.name===table.name;});
+      html += '<div class="qbe-table-item '+(isActive?'active':'')+'" draggable="true" ondragstart="qbeDragStart(event,\''+escapeHtml(schema.schema)+'\',\''+escapeHtml(table.name)+'\')" onclick="qbeAddTableToQuery(\''+escapeHtml(schema.schema)+'\',\''+escapeHtml(table.name)+'\')"><span class="ticon">T</span><span class="tname">'+escapeHtml(table.name)+'</span><span class="tadd">'+(isActive?'&#x2713;':'+')+'</span></div>';
+      html += '<div class="qbe-columns" id="qbeCols_'+escapeHtml(schema.schema)+'_'+escapeHtml(table.name)+'">'+
+        table.columns.slice(0,10).map(function(col){return '<div class="qbe-col-item"><span>'+escapeHtml(col.name)+'</span><span class="col-type">:'+col.type+'</span></div>';}).join('')+
+        (table.columns.length>10?'<div style="padding:2px 4px;font-size:9px;color:var(--text-muted)">+'+(table.columns.length-10)+' more...</div>':'')+
+        '</div>';
+    });
+    html += '</div></div>';
+  });
+  if (!html) html = searchVal?'<div style="padding:20px;color:var(--text-muted);font-size:11px;text-align:center">No tables match your search</div>':'<div style="padding:20px;color:var(--text-muted);font-size:11px;text-align:center">No tables found</div>';
+  container.innerHTML = html;
+  document.getElementById('qbeTableCount').textContent = totalTables;
+}
+
+function qbeFilterTables() { qbeRenderTableBrowser(); }
+
+function qbeToggleSchema(header) {
+  var arrow = header.querySelector('.arrow');
+  var tables = header.nextElementSibling;
+  if (tables.style.display === 'none') { tables.style.display = ''; arrow.classList.add('open'); }
+  else { tables.style.display = 'none'; arrow.classList.remove('open'); }
+}
+
+// --- Drag and Drop -----------------------------------------
+var qbeDragData = null;
+function qbeDragStart(event, schema, name) { qbeDragData = {schema:schema, name:name}; event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('text/plain', schema+'.'+name); event.target.style.opacity = '0.5'; setTimeout(function(){event.target.style.opacity='';},100); }
+function qbeDragOver(event) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; document.getElementById('qbeCanvas').classList.add('drag-over'); }
+function qbeDragLeave(event) { document.getElementById('qbeCanvas').classList.remove('drag-over'); }
+function qbeDropOnCanvas(event) {
+  event.preventDefault(); document.getElementById('qbeCanvas').classList.remove('drag-over');
+  if (qbeDragData) { qbeAddTableToQuery(qbeDragData.schema, qbeDragData.name); qbeDragData = null; showToast('Table added via drag & drop','success'); }
+}
+
+// --- Add/Remove Tables with Auto-Join ----------------------
+function qbeAddTableToQuery(schema, name) {
+  var existing = qbeState.tables.findIndex(function(t){return t.schema===schema&&t.name===name;});
+  if (existing >= 0) {
+    qbeState.tables.splice(existing,1);
+    var key = schema+'.'+name;
+    qbeState.selectedCols = qbeState.selectedCols.filter(function(c){return c.tableKey!==key;});
+    qbeState.joins = qbeState.joins.filter(function(j){return j.tableKey!==key;});
+    qbeRenderCanvas(); qbeRenderTableBrowser(); qbeGenerate(); return;
+  }
+  var key = schema+'.'+name+'.'+(++qbeTableCounter);
+  qbeState.tables.push({schema:schema, name:name, alias:name.substring(0,3), key:key});
+  if (qbeState.tables.length > 1) {
+    var prev = qbeState.tables[qbeState.tables.length-2];
+    qbeTablesCache.forEach(function(s) {
+      if (s.schema === schema) {
+        s.tables.forEach(function(tbl) {
+          if (tbl.name === name && tbl.foreignKeys) {
+            tbl.foreignKeys.forEach(function(fk) {
+              if (fk.refSchema === prev.schema && fk.refTable === prev.name) {
+                qbeState.joins.push({tableKey:key, type:'INNER', condition:name+'.'+fk.column+' = '+prev.alias+'.'+fk.refColumn});
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+  qbeRenderCanvas(); qbeRenderTableBrowser(); qbeGenerate();
+}
+
+function qbeRemoveTable(index) {
+  if (index<0||index>=qbeState.tables.length) return;
+  var t = qbeState.tables[index]; var key = t.key;
+  qbeState.tables.splice(index,1);
+  qbeState.selectedCols = qbeState.selectedCols.filter(function(c){return c.tableKey!==key;});
+  qbeState.joins = qbeState.joins.filter(function(j){return j.tableKey!==key;});
+  qbeRenderCanvas(); qbeRenderTableBrowser(); qbeGenerate();
+}
 // --- ER Diagram -------------------------------------------
 async function generateER() {
   const container = document.getElementById('erCanvas');
@@ -1256,7 +1577,7 @@ document.getElementById('modalClose').onclick = closeModal;
 
 // --- Column ops -------------------------------------------
 function addColumn() {
-  state.columns.push({ name:'', type:'VARCHAR', length:'255', nullable:true, default:'', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'' });
+  state.columns.push({ name:'', type:'VARCHAR', length:'255', nullable:true, default:'', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'', comment:'' });
   renderTableDesigner();
   updateColCount();
   onDesignChange();
@@ -1264,8 +1585,8 @@ function addColumn() {
 function deleteColumn(i) { state.columns.splice(i,1); if (type==='TABLE'&&state.columns.length===0) addColumn(); renderTableDesigner(); updateColCount(); onDesignChange(); }
 function moveColumn(i, dir) { if (i+dir<0||i+dir>=state.columns.length) return; var tmp=state.columns[i]; state.columns[i]=state.columns[i+dir]; state.columns[i+dir]=tmp; renderTableDesigner(); onDesignChange(); }
 function updateCol(i, field, val) { state.columns[i][field]=val; onDesignChange(); }
-function toggleFK(i, checked) { state.columns[i].foreignKey=checked; if (!checked){state.columns[i].refTable='';state.columns[i].refColumn='';state.columns[i].onDelete='';state.columns[i].onUpdate='';} renderTableDesigner(); onDesignChange(); }
-function getTypeOptions() { return ['SERIAL','BIGSERIAL','INTEGER','BIGINT','SMALLINT','VARCHAR','CHAR','TEXT','BOOLEAN','DATE','TIMESTAMP','TIMESTAMPTZ','TIME','FLOAT','DOUBLE','DECIMAL','NUMERIC','MONEY','UUID','JSON','JSONB','BYTEA','BLOB','ENUM','ARRAY','GEOMETRY']; }
+function toggleFK(i, checked) { state.columns[i].foreignKey=checked; if (checked) { if (!state.columns[i].onDelete) state.columns[i].onDelete='NO ACTION'; if (!state.columns[i].onUpdate) state.columns[i].onUpdate='NO ACTION'; } else { state.columns[i].refTable='';state.columns[i].refColumn='';state.columns[i].onDelete='';state.columns[i].onUpdate=''; } renderTableDesigner(); onDesignChange(); }
+function getTypeOptions() { return ['SERIAL','BIGSERIAL','INTEGER','BIGINT','SMALLINT','VARCHAR','CHAR','TEXT','CLOB','BOOLEAN','DATE','TIME','TIMESTAMP','TIMESTAMPTZ','INTERVAL','FLOAT','DOUBLE','DECIMAL','NUMERIC','MONEY','UUID','JSON','JSONB','BYTEA','BLOB','INET','CIDR','ENUM','ARRAY','GEOMETRY']; }
 function updateColCount() {
   var count = state.columns.length;
   var el = document.getElementById('colCount');
@@ -1289,50 +1610,95 @@ async function loadCodeTemplate(engine) {
 }
 
 // --- Export / Import -------------------------------------
-function exportDDL() {
-  var all = '';
+function exportSQL() {
+  var type = document.getElementById('objType').value;
+  var name = document.getElementById('objName').value.trim() || 'unnamed';
+  var schema = document.getElementById('objSchema').value.trim() || 'public';
+  var engineLabels = { postgresql:'PostgreSQL', mysql:'MySQL', sqlite:'SQLite', mssql:'MSSQL' };
+  var parts = ['-- ============================================================\n-- Schema Builder Export\n-- Object: '+type+' '+schema+'.'+name+'\n-- Generated: '+new Date().toISOString()+'\n-- ============================================================\n'];
+  var hasSql = false;
   for (var key of ENGINE_KEYS) {
     var pane = document.getElementById('sql'+key.charAt(0).toUpperCase()+key.slice(1));
-    if (pane && pane.textContent && !pane.textContent.startsWith('--')) {
-      all += '-- === '+key.toUpperCase()+' ===\n' + pane.textContent + '\n\n';
-    }
+    var sql = pane ? pane.textContent.trim() : '';
+    if (sql && !sql.startsWith('--')) { hasSql = true; parts.push('-- -- '+engineLabels[key]+' --------------------------\n'+sql+'\n'); }
   }
-  if (!all) { showToast('Generate SQL first before exporting','error'); return; }
-  var blob = new Blob([all], {type:'text/plain'});
-  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'schema-export.sql';
-  a.click(); URL.revokeObjectURL(a.href);
-  showToast('SQL exported','success');
+  if (!hasSql) { showToast('Generate SQL first before exporting','error'); return; }
+  var content = parts.join('\n');
+  var safeName = name.replace(/[^a-zA-Z0-9_]/g, '_');
+  var filename = safeName+'_'+type.toLowerCase()+'.sql';
+  var blob = new Blob([content], {type:'application/sql;charset=utf-8'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+  showToast('Exported: '+filename+' ('+(content.length/1024).toFixed(1)+' KB)','success');
 }
 
-function importSQL() {
-  var input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.sql,.txt';
-  input.onchange = function(e){
-    var file = e.target.files[0]; if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(ev){
-      var text = ev.target.result;
-      var firstKey = ENGINE_KEYS[0];
-      var pane = document.getElementById('sql'+firstKey.charAt(0).toUpperCase()+firstKey.slice(1));
-      if (pane) pane.textContent = text;
-      showToast('SQL imported','success');
-    };
-    reader.readAsText(file);
+function importSQL() { document.getElementById('sqlFileInput').click(); }
+
+function onFileSelected(event) {
+  var file = event.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var sql = e.target.result; if (!sql.trim()) { showToast('File is empty','error'); return; }
+    var detection = detectEngine(sql);
+    var engine = detection.engine;
+    var label = {postgresql:'PostgreSQL', mysql:'MySQL', sqlite:'SQLite', mssql:'MSSQL'}[engine] || engine;
+    for (var key of ENGINE_KEYS) {
+      var pane = document.getElementById('sql'+key.charAt(0).toUpperCase()+key.slice(1));
+      if (key === engine) { pane.textContent = sql; }
+      else { pane.textContent = '-- ('+label+' engine detected -- SQL shown in '+label+' pane above)'; }
+    }
+    document.getElementById('buildEngine').value = engine;
+    var ports = {postgresql:'5432', mysql:'3306', sqlite:'', mssql:'1433'};
+    document.getElementById('buildPort').value = ports[engine] || '';
+    switchPreviewTab('sql', document.querySelector('.preview-tabs button:first-child'));
+    var details = detection.confidence >= 80 ? 'high confidence' : detection.confidence >= 50 ? 'medium confidence' : 'low confidence';
+    showToast('Imported: '+file.name+' > '+label+' ('+details+', score: '+detection.scores[engine]+')','success');
   };
-  input.click();
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function detectEngine(sql) {
+  var text = sql; var scores = { postgresql:0, mysql:0, sqlite:0, mssql:0 };
+  if (/SERIAL\b/i.test(text)) scores.postgresql += 8;
+  if (/::\w+/.test(text)) scores.postgresql += 5;
+  if (/\bILIKE\b/i.test(text)) scores.postgresql += 4;
+  if (/TIMESTAMPTZ\b/i.test(text)) scores.postgresql += 5;
+  if (/\bJSONB\b/i.test(text)) scores.postgresql += 4;
+  if (/\bBYTEA\b/i.test(text)) scores.postgresql += 3;
+  if (/RETURNING\b/i.test(text)) scores.postgresql += 3;
+  if (/AUTO_INCREMENT\b/i.test(text)) scores.mysql += 8;
+  if (/`[^`]+`/.test(text)) scores.mysql += 6;
+  if (/ENGINE\s*=\s*\w+/i.test(text)) scores.mysql += 5;
+  if (/\bTINYINT\b/i.test(text)) scores.mysql += 4;
+  if (/\bUNSIGNED\b/i.test(text)) scores.mysql += 4;
+  if (/\bDATETIME\b/i.test(text)) scores.mysql += 2;
+  if (/\bAUTOINCREMENT\b/i.test(text)) scores.sqlite += 8;
+  if (/sqlite_master/i.test(text)) scores.sqlite += 6;
+  if (/PRAGMA\b/i.test(text)) scores.sqlite += 5;
+  if (/\[[\w\s]+\]/.test(text)) scores.mssql += 7;
+  if (/\bIDENTITY\s*\(/i.test(text)) scores.mssql += 6;
+  if (/\bNVARCHAR\b/i.test(text)) scores.mssql += 5;
+  if (/^GO\s*$/im.test(text)) scores.mssql += 4;
+  if (/\bTOP\s+\d+/i.test(text)) scores.mssql += 3;
+  if (/@\w+/.test(text)) scores.mssql += 2;
+  var maxScore = Math.max(0, ...Object.values(scores));
+  var totalSignals = Object.values(scores).reduce(function(a,b){return a+Math.abs(b);},0);
+  var engine = Object.entries(scores).filter(function(e){return e[1]===maxScore;}).map(function(e){return e[0];})[0] || 'postgresql';
+  var confidence = totalSignals > 0 ? Math.min(100, Math.round((maxScore/Math.max(totalSignals,1))*100)) : 0;
+  return { engine:engine, scores:scores, confidence:confidence };
 }
 
 // --- Sample -----------------------------------------------
 function loadSample() {
   state.columns = [
-    { name:'user_id', type:'SERIAL', length:'', nullable:false, default:'', primaryKey:true, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'' },
-    { name:'username', type:'VARCHAR', length:'100', nullable:false, default:'', primaryKey:false, unique:true, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'' },
-    { name:'email', type:'VARCHAR', length:'255', nullable:false, default:'', primaryKey:false, unique:true, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'' },
-    { name:'profile_pic', type:'VARCHAR', length:'500', nullable:true, default:'NULL', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'' },
-    { name:'role_id', type:'INTEGER', length:'', nullable:true, default:'', primaryKey:false, unique:false, foreignKey:true, refTable:'roles', refColumn:'id', onDelete:'SET NULL', onUpdate:'CASCADE' },
-    { name:'is_active', type:'BOOLEAN', length:'', nullable:false, default:'TRUE', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'' },
-    { name:'created_at', type:'TIMESTAMP', length:'', nullable:false, default:'NOW()', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'' }
+    { name:'user_id', type:'SERIAL', length:'', nullable:false, default:'', primaryKey:true, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'', comment:'' },
+    { name:'username', type:'VARCHAR', length:'100', nullable:false, default:'', primaryKey:false, unique:true, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'', comment:'' },
+    { name:'email', type:'VARCHAR', length:'255', nullable:false, default:'', primaryKey:false, unique:true, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'', comment:'' },
+    { name:'profile_pic', type:'VARCHAR', length:'500', nullable:true, default:'NULL', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'', comment:'' },
+    { name:'role_id', type:'INTEGER', length:'', nullable:true, default:'', primaryKey:false, unique:false, foreignKey:true, refTable:'roles', refColumn:'id', onDelete:'SET NULL', onUpdate:'CASCADE', comment:'' },
+    { name:'is_active', type:'BOOLEAN', length:'', nullable:false, default:'TRUE', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'', comment:'' },
+    { name:'created_at', type:'TIMESTAMP', length:'', nullable:false, default:'NOW()', primaryKey:false, unique:false, foreignKey:false, refTable:'', refColumn:'', onDelete:'', onUpdate:'', comment:'' }
   ];
   document.getElementById('objName').value = 'users';
   document.getElementById('objSchema').value = 'public';
@@ -1356,13 +1722,19 @@ function clearDesign() {
   showToast('Design cleared','info');
 }
 
-// --- Design change (tree-update trigger) ------------------
+// --- Design change (debounced auto-generate) ---------------
 function onDesignChange() {
   var name = document.getElementById('objName').value.trim();
   if (name && state._activeTreeNode) {
     state._activeTreeNode.name = name;
     treeSave(); treeRender();
   }
+  if (CODE_TYPES.includes(document.getElementById('objType').value)) {
+    var editor = document.getElementById('codeEditor');
+    if (editor) state.codeBody = editor.value;
+  }
+  clearTimeout(state._debounce);
+  state._debounce = setTimeout(generatePreview, 800);
 }
 
 // --- Constraint dialog -----------------------------------
@@ -1411,28 +1783,12 @@ async function treeRefresh() {
   } catch (err) { showToast('Error: '+err.message,'error'); }
 }
 
-// --- QBE helper stubs -------------------------------------
-function qbeClearAll() { qbeState = JSON.parse(JSON.stringify(QBE_DEFAULTS)); initQBE(); document.getElementById('qbeSelectCols').value=''; document.getElementById('qbeUnionSelect').value=''; document.getElementById('qbeOutputContainer').style.display='none'; document.getElementById('qbeResults').innerHTML=''; }
-function qbeCheckSyntax() { showToast('Syntax check: open the browser console for details','info'); const s=document.getElementById('qbeSelectCols').value; console.log('QBE SELECT:',s); }
-function qbeRunExplain() { const engine=document.getElementById('qbeEngine').value; const ta=document.getElementById('qbeSql'+engine.charAt(0).toUpperCase()+engine.slice(1)); if(ta&&ta.value.trim()){runExplain();}else{showToast('Build a query first','error');} }
-function qbeKwInsert(k) { var ta=document.getElementById('qbeSelectCols'); if(!ta)return; var s=ta.selectionStart,e=ta.selectionEnd; ta.value=ta.value.substring(0,s)+k+' '+ta.value.substring(e); ta.selectionStart=ta.selectionEnd=s+k.length+1; ta.focus(); }
-function qbeSetJoinType(idx,type) { if(qbeState.joins[idx]){qbeState.joins[idx].type=type;renderJoinUI();}else if(!qbeState.joins.length){qbeState.joins.push({type:type,table:'',on:''});renderJoinUI();} }
-function qbeSetWhereOp(op) { if(qbeState.conditions.length){qbeState.conditions[qbeState.conditions.length-1].op=op;renderConditionUI();}else{qbeAddCondition();qbeState.conditions[0].op=op;renderConditionUI();} }
-function qbeAddWhere(field,op,value) { qbeState.conditions.push({field:field||'',op:op||'=',value:value||'',connector:'AND'}); renderConditionUI(); }
-function qbeAddUnion(type) { qbeState.unionType=type; qbeState.unionMode='all'; showToast('UNION '+type+' set','info'); }
-function qbeSetQueryType(type) { document.getElementById('qbeQueryType').value=type; }
-function qbeCopySql() { const engine=document.getElementById('qbeEngine').value; const ta=document.getElementById('qbeSql'+engine.charAt(0).toUpperCase()+engine.slice(1)); if(ta&&ta.value){navigator.clipboard.writeText(ta.value).then(function(){showToast('SQL copied','success');}).catch(function(){showToast('Copy failed','error');});}else{showToast('No SQL to copy','error');} }
-function qbeExportSql() { const engine=document.getElementById('qbeEngine').value; const ta=document.getElementById('qbeSql'+engine.charAt(0).toUpperCase()+engine.slice(1)); if(!ta||!ta.value){showToast('No SQL to export','error');return;} const blob=new Blob([ta.value],{type:'text/plain'}); const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='query-export.sql';a.click();URL.revokeObjectURL(a.href);showToast('SQL exported','success'); }
-function qbeCloseResults() { document.getElementById('qbeResults').innerHTML=''; }
-function qbeGenerate() { qbeBuild(); }
-function qbeFilterTables() { var q=document.getElementById('qbeTableSearch').value.toLowerCase(); Array.prototype.forEach.call(document.querySelectorAll('.qbe-table-item'),function(el){el.style.display=el.textContent.toLowerCase().includes(q)?'':'none';}); }
-function qbeRefreshTables() { treeRefresh(); }
+
 
 // --- Designer stubs ----------------------------------------
 function addConstraint() { if(document.getElementById('constraintDialog')){showConstraintDialog();}else{showToast('Constraint dialog not available in this mode','info');} }
 function loadTemplate() { loadCodeTemplate(document.getElementById('buildEngine').value); }
-function exportSQL() { exportDDL(); }
-function onFileSelected(e) { var file=e.target.files[0]; if(!file)return; var reader=new FileReader(); reader.onload=function(ev){var firstKey=ENGINE_KEYS[0];var pane=document.getElementById('sql'+firstKey.charAt(0).toUpperCase()+firstKey.slice(1));if(pane)pane.textContent=ev.target.result;showToast('SQL imported','success');};reader.readAsText(file); }
+
 
 // --- ER stubs ---------------------------------------------
 function erRefresh() { generateER(); }
