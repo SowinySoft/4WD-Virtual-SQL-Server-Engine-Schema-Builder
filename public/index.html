@@ -135,7 +135,12 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 .context-item .ctx-icon { width: 16px; text-align: center; font-size: 12px; flex-shrink: 0; }
 .context-divider { height: 1px; background: var(--border); margin: 4px 0; }
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(4,8,15,0.85); z-index: 9998; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.5); padding: 20px 24px; min-width: 400px; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.5); min-width: 400px; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+.modal-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--border); font-weight:600; font-size:13px; color:var(--text); }
+.modal-header .modal-close { background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; padding:0; line-height:1; }
+.modal-header .modal-close:hover { color:var(--text); }
+.modal-body { padding:20px; font-size:12px; }
+.modal-footer { display:flex; gap:6px; justify-content:flex-end; padding:10px 20px; border-top:1px solid var(--border); }
 .modal h2 { font-size: 14px; margin-bottom: 16px; color: var(--accent); font-weight: 600; }
 .modal .field { margin-bottom: 12px; }
 .modal .field label { display: block; color: var(--text-muted); font-size: 11px; margin-bottom: 4px; }
@@ -217,7 +222,7 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 .qbe-section-title { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .qbe-section-title span { color: var(--text-muted); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 .qbe-section-title .btn { font-size: 9px; padding: 2px 8px; }
-.qbe-keywords { width: 200px; min-width: 160px; display: flex; flex-direction: column; border-left: 1px solid var(--border); overflow: hidden; }
+.qbe-keywords { width: 260px; min-width: 160px; display: flex; flex-direction: column; border-left: 1px solid var(--border); overflow: hidden; }
 .qbe-keywords-scroll { flex: 1; overflow: auto; padding: 6px; }
 .qbe-kw-cat { margin-bottom: 10px; }
 .qbe-kw-cat-title { font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; padding: 0 2px; }
@@ -248,6 +253,17 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 .qbe-results-msg { padding: 10px 12px; font-size: 11px; border-radius: var(--radius); margin: 6px 0; }
 .qbe-results-msg.success { background: rgba(0,230,118,0.1); color: var(--green); border: 1px solid rgba(0,230,118,0.15); }
 .qbe-results-msg.error { background: rgba(255,61,87,0.1); color: var(--red); border: 1px solid rgba(255,61,87,0.15); }
+.placeholder { color: var(--text-muted); font-style: italic; }
+.qbe-syntax-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; }
+.qbe-syntax-badge.pending { background:rgba(255,193,7,0.15); color:#ffc107; }
+.qbe-syntax-badge.pass { background:rgba(0,230,118,0.15); color:var(--green); }
+.qbe-syntax-badge.fail { background:rgba(255,61,87,0.15); color:var(--red); }
+.drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; background: rgba(0,212,255,0.03); }
+.qbe-schema-tables { padding:0; }
+.context-menu-divider { height:1px; background:var(--border); margin:4px 8px; }
+.context-menu-item { padding:6px 16px; cursor:pointer; font-size:12px; color:var(--text); }
+.context-menu-item:hover { background:rgba(0,212,255,0.08); color:var(--accent); }
+.toast.info { background:var(--surface); border-left-color:var(--accent); }
 .er-container { display: none; flex-direction: column; flex: 1; overflow: hidden; }
 .er-toolbar { display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .er-toolbar .er-title { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 8px; }
@@ -360,7 +376,7 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
   <!-- QBE Container -->
   <div id="qbeContainer">
     <div class="qbe-header">
-      <select id="qbeQueryType" onchange="qbeGenerate()">
+      <select id="qbeQueryType" onchange="qbeSetQueryType(this.value)">
         <option value="SELECT">SELECT</option>
         <option value="INSERT">INSERT</option>
         <option value="UPDATE">UPDATE</option>
@@ -499,16 +515,77 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
     </div>
   </div>
   <!-- Toast -->
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toastContainer"></div>
   <!-- Context Menu -->
   <div class="context-menu" id="contextMenu" style="display:none"></div>
   <!-- Modal Overlay -->
-  <div class="modal-overlay" id="modalOverlay" style="display:none" onclick="if(event.target===this)treeCloseModal()">
-    <div class="modal" id="modalContent"></div>
+  <div class="modal-overlay" id="modalOverlay" style="display:none" onclick="if(event.target===this)closeModal()">
+    <div class="modal" id="modalContent">
+      <div class="modal-header"><span id="modalTitle"></span><button id="modalClose" class="modal-close">&times;</button></div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" style="display:flex;gap:6px;justify-content:flex-end"><button id="modalCancel" class="btn">Cancel</button><button id="modalConfirm" class="btn btn-primary"></button></div>
+    </div>
   </div>
 <script>
 // --- Helpers -----------------------------------------------
 function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// --- Advanced Error Handler --------------------------------
+var AppErrors = { log:[], maxLog:50, handlerInstalled:false };
+function installErrorHandler() {
+  if (AppErrors.handlerInstalled) return;
+  AppErrors.handlerInstalled = true;
+  window.onerror = function(msg, url, line, col, err) {
+    var info = { msg:msg, url:url||'', line:line||0, col:col||0, stack:err&&err.stack||'', time:new Date().toISOString() };
+    AppErrors.log.push(info); if (AppErrors.log.length > AppErrors.maxLog) AppErrors.log.shift();
+    console.error('[AppError]', msg, err||'');
+    showToast('Error: '+(typeof msg==='string'?msg.split('\n')[0]:'Unknown'), 'error');
+    return true;
+  };
+  window.addEventListener('unhandledrejection', function(e) {
+    var err = e.reason;
+    var info = { msg:err&&err.message||'Unhandled Promise rejection', stack:err&&err.stack||'', time:new Date().toISOString() };
+    AppErrors.log.push(info); if (AppErrors.log.length > AppErrors.maxLog) AppErrors.log.shift();
+    console.error('[UnhandledRejection]', err||'');
+    showToast('Unhandled error: '+(err&&err.message||'Unknown'), 'error');
+    e.preventDefault();
+  });
+}
+installErrorHandler();
+
+function safeFetch(url, opts) {
+  return fetch(url, opts).then(function(r){
+    if (!r.ok) return r.json().then(function(j){ var e=new Error(j.error?.message||j.message||'HTTP '+r.status); e.status=r.status; e.data=j; throw e; }).catch(function(e){ if(e.status)throw e; throw new Error('HTTP '+r.status); });
+    return r.json().then(function(j){
+      if (j&&j.success===false) { var e=new Error(j.error?.message||j.message||'Request failed'); e.data=j; throw e; }
+      return j;
+    });
+  }).catch(function(e){
+    if (e.status) throw e;
+    var err = new Error('Network error: '+(e.message||'Connection failed'));
+    err.original = e; throw err;
+  });
+}
+
+function withErrorHandling(fn, context) {
+  return function() {
+    try {
+      var result = fn.apply(this, arguments);
+      if (result && typeof result.then === 'function') {
+        return result.catch(function(err){
+          var ctx = context||fn.name||'operation';
+          console.error('['+ctx+']', err.message, err.stack||'');
+          showToast(ctx+' failed: '+err.message, 'error');
+        });
+      }
+      return result;
+    } catch(err) {
+      var ctx = context||fn.name||'operation';
+      console.error('['+ctx+']', err.message, err.stack||'');
+      showToast(ctx+' failed: '+err.message, 'error');
+    }
+  };
+}
 
 // --- State ------------------------------------------------
 const state = { columns: [], constraints: [], isCodeType: false, codeBody: '' };
@@ -756,9 +833,7 @@ async function treeRefreshFromDb(id) {
   const cfg = node.config; if (!cfg) { showToast('No connection config','error'); return; }
   showToast('Refreshing...','');
   try {
-    const resp = await fetch('/api/design/schema-tables', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({target:cfg}) });
-    const json = await resp.json();
-    if (!json.success) throw new Error(json.error?.message||'Refresh failed');
+    const json = await safeFetch('/api/design/schema-tables', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({target:cfg}) });
     const schemas = json.data.tables||[];
     for (const s of schemas) {
       let sn = node.children.find(function(c){return c.type==='schema'&&c.name===s.schema;});
@@ -832,7 +907,7 @@ function switchMode(mode, btn) {
 }
 
 // --- Init -------------------------------------------------
-function init() { treeLoad(); if (!treeData.length) loadSample(); else loadSample(); }
+function init() { treeLoad(); if (!treeData.length) loadSample(); }
 document.addEventListener('DOMContentLoaded', init);
 
 // --- Object type change -----------------------------------
@@ -931,9 +1006,7 @@ async function generatePreview() {
   const design = collectDesign();
   if (design.objectType === 'TABLE' && (!design.columns || design.columns.length === 0)) { showToast('Add at least one column','error'); return; }
   try {
-    const resp = await fetch('/api/design/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({design:design}) });
-    const json = await resp.json();
-    if (!json.success) throw new Error(json.error?.message||'Generation failed');
+    const json = await safeFetch('/api/design/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({design:design}) });
     const data = json.data;
     for (const key of ENGINE_KEYS) {
       const pane = document.getElementById('sql'+key.charAt(0).toUpperCase()+key.slice(1));
@@ -951,9 +1024,7 @@ async function buildTarget() {
   if (!document.getElementById('buildDryRun').checked) { if (!confirm('Build directly to target database? This will execute DDL statements.')) return; }
   try {
     const target = { engine:document.getElementById('buildEngine').value, host:document.getElementById('buildHost').value||'localhost', port:parseInt(document.getElementById('buildPort').value)||5432, database:document.getElementById('buildDb').value||'postgres', user:document.getElementById('buildUser').value||'postgres', password:document.getElementById('buildPass').value||'', dryRun:document.getElementById('buildDryRun').checked };
-    const buildResp = await fetch('/api/design/build', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({design:design, target:target}) });
-    const buildJson = await buildResp.json();
-    if (!buildJson.success) throw new Error(buildJson.error?.message||'Build failed');
+    const buildJson = await safeFetch('/api/design/build', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({design:design, target:target}) });
     const results = buildJson.data.results;
     const container = document.getElementById('buildResults');
     let html = '<div style="margin-bottom:8px"><span style="color:var(--text-muted)">Target: '+target.engine+'://'+target.host+':'+target.port+'/'+target.database+'</span><span style="margin-left:12px">'+(target.dryRun?'<span style="color:var(--orange)">&#x26AB; Dry-run</span>':'<span style="color:var(--green)">&#x25CF; Live</span>')+'</span></div>';
@@ -981,9 +1052,7 @@ async function runExplain() {
   container.innerHTML = '<div style="padding:12px;color:var(--text-muted)">Running EXPLAIN...</div>';
   switchPreviewTab('explain', document.querySelectorAll('.preview-tabs button')[2]);
   try {
-    const resp = await fetch('/api/design/explain', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:sql, target:target, analyze:analyze}) });
-    const json = await resp.json();
-    if (!json.success) throw new Error(json.error?.message||'Explain failed');
+    const json = await safeFetch('/api/design/explain', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:sql, target:target, analyze:analyze}) });
     const data = json.data;
     if (!data.results||data.results.length===0) { container.innerHTML = '<div class="explain-error">No explain results returned</div>'; return; }
     let html = '<div class="explain-header"><span style="color:var(--text-muted)">Engine: '+engine+'</span><span style="margin-left:16px">'+(analyze?'EXPLAIN ANALYZE':'EXPLAIN')+'</span><span style="margin-left:16px">'+data.results.length+' result set(s)</span></div>';
@@ -1024,6 +1093,7 @@ var qbeState = {
 // qbeTablesCache, qbeTableCounter, qbeGeneratedSql shared from top-level let
 
 function initQBE() {
+  qbeRefreshTables();
   if (!qbeState.tables.length) {
     qbeState.tables = [{name:'users',alias:'u',schema:'public',key:'public.users.1'},{name:'orders',alias:'o',schema:'public',key:'public.orders.2'}];
     qbeState.joins = [{type:'INNER',condition:'users.id = orders.user_id'}];
@@ -1242,9 +1312,7 @@ async function qbeGenerateNow() {
   };
   document.getElementById('qbeStatus').textContent = 'Generating...';
   try {
-    var resp = await fetch('/api/design/query-build', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({qbe:qbePayload, engine:engine})});
-    var json = await resp.json();
-    if (!json.success) throw new Error(json.error?.message||'Generation failed');
+    var json = await safeFetch('/api/design/query-build', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({qbe:qbePayload, engine:engine})});
     qbeGeneratedSql = json.data.sql;
     document.getElementById('qbeSqlText').textContent = qbeGeneratedSql;
     document.getElementById('qbeSqlText').classList.remove('placeholder');
@@ -1265,9 +1333,7 @@ async function qbeExecute() {
   var origText = btn.textContent; btn.textContent = 'Executing...'; btn.disabled = true;
   qbeCloseResults();
   try {
-    var resp = await fetch('/api/design/execute', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:qbeGeneratedSql, target:target})});
-    var json = await resp.json();
-    if (!json.success) throw new Error(json.data?.error||json.error?.message||'Execute failed');
+    var json = await safeFetch('/api/design/execute', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:qbeGeneratedSql, target:target})});
     var data = json.data;
     var resultsBody = document.getElementById('qbeResultsBody');
     var resultsLabel = document.getElementById('qbeResultsLabel');
@@ -1302,11 +1368,11 @@ async function qbeCheckSyntax() {
   var badge = document.getElementById('qbeSyntaxBadge');
   badge.innerHTML = '<span class="qbe-syntax-badge pending">checking...</span>';
   try {
-    var resp = await fetch('/api/design/explain', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:qbeGeneratedSql, target:target, analyze:false})});
-    var json = await resp.json();
-    if (json.success) { badge.innerHTML = '<span class="qbe-syntax-badge pass">Syntax OK</span>'; showToast('Syntax check passed','success'); }
-    else { var msg = json.error?.message||'Syntax error';
-      badge.innerHTML = '<span class="qbe-syntax-badge fail">Syntax Error</span>';
+    var json = await safeFetch('/api/design/explain', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:qbeGeneratedSql, target:target, analyze:false})});
+    var msg = json.data&&json.data.plan||json.message||'Syntax OK';
+    var isError = json.data&&json.data.error;
+    if (!isError) { badge.innerHTML = '<span class="qbe-syntax-badge pass">Syntax OK</span>'; showToast('Syntax check passed','success'); }
+    else { badge.innerHTML = '<span class="qbe-syntax-badge fail">Syntax Error</span>';
       showToast('Syntax error: '+msg,'error');
       document.getElementById('qbeResultsLabel').textContent = 'Syntax Error';
       document.getElementById('qbeResultsBody').innerHTML = '<div class="qbe-results-msg error">'+escapeHtml(msg)+'</div>';
@@ -1327,9 +1393,7 @@ async function qbeRunExplain() {
   var target = {engine:engine, host:document.getElementById('buildHost').value||'localhost', port:parseInt(document.getElementById('buildPort').value)||5432, database:document.getElementById('buildDb').value||'postgres', user:document.getElementById('buildUser').value||'postgres', password:document.getElementById('buildPass').value||''};
   showToast('Running EXPLAIN...','');
   try {
-    var resp = await fetch('/api/design/explain', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:qbeGeneratedSql, target:target, analyze:document.getElementById('explainAnalyze').checked})});
-    var json = await resp.json();
-    if (!json.success) throw new Error(json.error?.message);
+    var json = await safeFetch('/api/design/explain', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sql:qbeGeneratedSql, target:target, analyze:document.getElementById('explainAnalyze').checked})});
     var data = json.data; var container = document.getElementById('explainResults');
     var h = '<div class="explain-header"><span>EXPLAIN - '+engine+'</span><span style="margin-left:16px">'+data.results.length+' result set(s)</span></div>';
     for (var ri=0;ri<data.results.length;ri++) {
@@ -1376,27 +1440,28 @@ function qbeClearAll() {
 
 // --- Table Browser -----------------------------------------
 function qbeRefreshTables() {
-  var engine = document.getElementById('buildEngine').value;
-  var host = document.getElementById('buildHost').value||'localhost';
-  var port = parseInt(document.getElementById('buildPort').value)||5432;
-  var database = document.getElementById('buildDb').value||'postgres';
-  if (!engine||!host||!database) {
-    document.getElementById('qbeTableList').innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:11px;text-align:center">Configure DB connection in build config bar, then click Refresh</div>'; return;
-  }
-  document.getElementById('qbeTableList').innerHTML = '<div style="padding:20px;text-align:center"><span class="spinner"></span>Loading tables...</div>';
-  fetch('/api/design/schema-tables', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({target:{engine:engine, host:host, port:port, database:database, user:document.getElementById('buildUser').value||'postgres', password:document.getElementById('buildPass').value||''}})})
-    .then(function(r){return r.json();})
-    .then(function(json) {
-      if (!json.success) throw new Error(json.error?.message||'Introspection failed');
-      qbeTablesCache = json.data.tables;
-      qbeRenderTableBrowser();
-      document.getElementById('qbeStatus').textContent = 'Tables loaded: '+qbeTablesCache.reduce(function(a,s){return a+s.tables.length;},0);
-    })
-    .catch(function(err) {
-      document.getElementById('qbeTableList').innerHTML = '<div style="padding:20px;color:var(--red);font-size:11px;text-align:center">Error: '+escapeHtml(err.message)+'</div>';
-      document.getElementById('qbeStatus').textContent = 'Connection failed';
-      showToast('QBE: '+err.message,'error');
+  function collectTables(nodes) {
+    var result = [], schemas = {};
+    (nodes||[]).forEach(function(n){
+      if ((n.type==='TABLE'||n.type==='VIEW') && n.name && n.columns) {
+        var s = n.schema||'public';
+        if (!schemas[s]) schemas[s] = { schema:s, tables:[] };
+        var fks = n.columns.filter(function(c){return c.foreignKey&&c.refTable&&c.refColumn;}).map(function(c){return {column:c.name,refSchema:s,refTable:c.refTable,refColumn:c.refColumn};});
+        schemas[s].tables.push({ name:n.name, columns:(n.columns||[]).map(function(c){return {name:c.name,type:c.type||''};}), foreignKeys:fks.length?fks:undefined });
+      }
+      if (n.children) result = result.concat(collectTables(n.children));
     });
+    return Object.values(schemas);
+  }
+  var schemas = collectTables(treeData);
+  if (!schemas.length) {
+    document.getElementById('qbeTableList').innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:11px;text-align:center">No tables in tree. Add tables via the Designer tab.</div>';
+    document.getElementById('qbeStatus').textContent = 'No tables';
+    return;
+  }
+  qbeTablesCache = schemas;
+  qbeRenderTableBrowser();
+  document.getElementById('qbeStatus').textContent = 'Tables: '+qbeTablesCache.reduce(function(a,s){return a+s.tables.length;},0);
 }
 
 function qbeRenderTableBrowser() {
@@ -1483,20 +1548,21 @@ function qbeRemoveTable(index) {
   qbeRenderCanvas(); qbeRenderTableBrowser(); qbeGenerate();
 }
 // --- ER Diagram -------------------------------------------
-async function generateER() {
+function generateER() {
   const container = document.getElementById('erCanvas');
-  container.innerHTML = '<div style="padding:12px;color:var(--text-muted)">Fetching schema...</div>';
-  try {
-    const engine = document.getElementById('buildEngine').value;
-    const target = { engine:engine, host:document.getElementById('buildHost').value||'localhost', port:parseInt(document.getElementById('buildPort').value)||5432, database:document.getElementById('buildDb').value||'', user:document.getElementById('buildUser').value||'', password:document.getElementById('buildPass').value||'' };
-    const resp = await fetch('/api/design/schema-tables', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({target:target}) });
-    const json = await resp.json();
-    if (!json.success) throw new Error(json.error?.message||'Schema fetch failed');
-    const schemas = json.data.tables||[];
-    if (!schemas.length) { container.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No tables found</div>'; return; }
-    renderERDiagram(schemas, container);
-    showToast('ER diagram generated from '+schemas.reduce(function(a,s){return a+s.tables.length;},0)+' tables','success');
-  } catch (err) { container.innerHTML = '<div class="explain-error">Error: '+escapeHtml(err.message)+'</div>'; showToast('ER diagram failed: '+err.message,'error'); }
+  function collectTables(nodes) {
+    let result = [];
+    (nodes||[]).forEach(function(n){
+      if ((n.type==='TABLE'||n.type==='VIEW') && n.name && n.columns) result.push(n);
+      if (n.children) result = result.concat(collectTables(n.children));
+    });
+    return result;
+  }
+  const tables = collectTables(treeData);
+  if (!tables.length) { container.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No tables in tree. Add tables via the Designer tab first.</div>'; return; }
+  const schemas = [{ schema:'public', tables:tables.map(function(t){ return { name:t.name, columns:(t.columns||[]).map(function(c){ return { name:c.name, type:c.type||'', primaryKey:!!c.primaryKey, isPrimaryKey:!!c.isPrimaryKey }; }) }; }) }];
+  renderERDiagram(schemas, container);
+  showToast('ER diagram generated from '+tables.length+' tables','success');
 }
 
 function renderERDiagram(schemas, container) {
@@ -1514,7 +1580,7 @@ function renderERDiagram(schemas, container) {
     x = 20; y += 250; svgH = y + 200;
   });
   svgH = Math.max(svgH + 100, 400);
-  let svg = '<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:var(--bg);font-family:monospace;font-size:11px">';
+  let svg = '<svg id="erSvg" width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:var(--bg);font-family:monospace;font-size:11px">';
   svg += '<defs><filter id="er-shadow"><feDropShadow dx="1" dy="1" stdDeviation="1" flood-opacity="0.15"/></filter></defs>';
   tableRects.forEach(function(tr){
     svg += '<rect x="'+tr.x+'" y="'+tr.y+'" width="'+tr.w+'" height="'+tr.h+'" rx="3" fill="var(--surface)" stroke="var(--border)" stroke-width="1" filter="url(#er-shadow)"/>';
@@ -1542,27 +1608,6 @@ function showToast(msg, type) {
   setTimeout(function(){ toast.classList.remove('show'); setTimeout(function(){ container.removeChild(toast); }, 300); }, type==='error'?5000:3000);
 }
 
-// --- Context Menu -----------------------------------------
-document.addEventListener('contextmenu', function(e) {
-  var cm = document.getElementById('contextMenu');
-  cm.style.display = 'none';
-});
-document.addEventListener('click', function(e) {
-  document.getElementById('contextMenu').style.display = 'none';
-});
-function showContextMenu(x, y, items) {
-  var cm = document.getElementById('contextMenu');
-  var html = '';
-  items.forEach(function(item, i){
-    if (item.divider) { html += '<div class="context-menu-divider"></div>'; }
-    else { html += '<div class="context-menu-item" onclick="'+item.action+'">'+item.label+'</div>'; }
-  });
-  cm.innerHTML = html;
-  cm.style.display = '';
-  cm.style.left = x+'px';
-  cm.style.top = y+'px';
-}
-
 // --- Modal ------------------------------------------------
 function showModal(title, contentHtml, confirmCb) {
   document.getElementById('modalTitle').textContent = title;
@@ -1572,8 +1617,6 @@ function showModal(title, contentHtml, confirmCb) {
   document.getElementById('modalOverlay').style.display = '';
 }
 function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
-document.getElementById('modalCancel').onclick = closeModal;
-document.getElementById('modalClose').onclick = closeModal;
 
 // --- Column ops -------------------------------------------
 function addColumn() {
@@ -1582,7 +1625,7 @@ function addColumn() {
   updateColCount();
   onDesignChange();
 }
-function deleteColumn(i) { state.columns.splice(i,1); if (type==='TABLE'&&state.columns.length===0) addColumn(); renderTableDesigner(); updateColCount(); onDesignChange(); }
+function deleteColumn(i) { state.columns.splice(i,1); if (document.getElementById('objType').value==='TABLE'&&state.columns.length===0) addColumn(); renderTableDesigner(); updateColCount(); onDesignChange(); }
 function moveColumn(i, dir) { if (i+dir<0||i+dir>=state.columns.length) return; var tmp=state.columns[i]; state.columns[i]=state.columns[i+dir]; state.columns[i+dir]=tmp; renderTableDesigner(); onDesignChange(); }
 function updateCol(i, field, val) { state.columns[i][field]=val; onDesignChange(); }
 function toggleFK(i, checked) { state.columns[i].foreignKey=checked; if (checked) { if (!state.columns[i].onDelete) state.columns[i].onDelete='NO ACTION'; if (!state.columns[i].onUpdate) state.columns[i].onUpdate='NO ACTION'; } else { state.columns[i].refTable='';state.columns[i].refColumn='';state.columns[i].onDelete='';state.columns[i].onUpdate=''; } renderTableDesigner(); onDesignChange(); }
@@ -1598,9 +1641,7 @@ async function loadCodeTemplate(engine) {
   const type = document.getElementById('objType').value;
   if (!CODE_TYPES.includes(type)) return;
   try {
-    const resp = await fetch('/api/design/templates/'+type+'/'+engine);
-    const json = await resp.json();
-    if (!json.success) throw new Error(json.error?.message||'Template fetch failed');
+    const json = await safeFetch('/api/design/templates/'+type+'/'+engine);
     state.codeBody = json.data.template;
     const editor = document.getElementById('codeEditor');
     if (editor) editor.value = state.codeBody;
@@ -1763,9 +1804,7 @@ async function treeRefresh() {
   const target = { engine:engine, host:host, port:port, database:database, user:user, password:password };
   showToast('Refreshing schema from '+database+'...','info');
   try {
-    const resp = await fetch('/api/design/schema-tables', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({target:target}) });
-    const json = await resp.json();
-    if (!json.success) throw new Error(json.error?.message||'Schema fetch failed');
+    const json = await safeFetch('/api/design/schema-tables', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({target:target}) });
     const schemas = json.data.tables||[];
     var tables = [];
     schemas.forEach(function(s){
@@ -1786,16 +1825,16 @@ async function treeRefresh() {
 
 
 // --- Designer stubs ----------------------------------------
-function addConstraint() { if(document.getElementById('constraintDialog')){showConstraintDialog();}else{showToast('Constraint dialog not available in this mode','info');} }
+function addConstraint() { showConstraintDialog(); }
 function loadTemplate() { loadCodeTemplate(document.getElementById('buildEngine').value); }
 
 
 // --- ER stubs ---------------------------------------------
 function erRefresh() { generateER(); }
-function erExportSVG() { var svg=document.getElementById('erSvg'); if(!svg){showToast('No ER diagram to export','error');return;} var s=new XMLSerializer().serializeToString(svg); var blob=new Blob([s],{type:'image/svg+xml'}); var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='er-diagram.svg';a.click();URL.revokeObjectURL(a.href);showToast('SVG exported','success'); }
-function erFitToScreen() { showToast('Fit to screen','info'); }
-function erZoomIn() { showToast('Zoom in','info'); }
-function erZoomOut() { showToast('Zoom out','info'); }
+function erExportSVG() { var svg=document.getElementById('erSvg')||document.querySelector('#erCanvas svg'); if(!svg){showToast('No ER diagram to export','error');return;} var s=new XMLSerializer().serializeToString(svg); var blob=new Blob([s],{type:'image/svg+xml'}); var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='er-diagram.svg';a.click();URL.revokeObjectURL(a.href);showToast('SVG exported','success'); }
+function erFitToScreen() { var c=document.getElementById('erCanvas'); var s=c.querySelector('svg'); if(!s)return; var r=c.getBoundingClientRect(); s.setAttribute('width',Math.max(r.width-20,400)); s.setAttribute('height',Math.max(r.height-20,200)); showToast('Fit to screen','info'); }
+function erZoomIn() { var s=document.querySelector('#erCanvas svg'); if(!s)return; var w=parseInt(s.getAttribute('width'))||1200, h=parseInt(s.getAttribute('height'))||800; s.setAttribute('width',w*1.2); s.setAttribute('height',h*1.2); }
+function erZoomOut() { var s=document.querySelector('#erCanvas svg'); if(!s)return; var w=parseInt(s.getAttribute('width'))||1200, h=parseInt(s.getAttribute('height'))||800; s.setAttribute('width',Math.max(w/1.2,200)); s.setAttribute('height',Math.max(h/1.2,100)); }
 
 // --- Keyboard shortcuts -----------------------------------
 document.addEventListener('keydown', function(e) {
