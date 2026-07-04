@@ -60,7 +60,7 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 .designer-panel { width: 55%; min-width: 450px; display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow: hidden; }
 .designer-toolbar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .designer-toolbar span { color: var(--text-muted); font-size: 11px; }
-.designer-content { flex: 1; overflow: auto; padding: 12px; }
+.designer-content { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; }
 .grid-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .grid-table th { text-align: left; padding: 6px 8px; background: var(--bg); border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 1; }
 .grid-table td { padding: 3px 4px; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -77,6 +77,18 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 .fk-ref-group { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .fk-input { width: 100px; padding: 2px 6px; font-size: 11px; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--text); }
 .fk-input:focus { border-color: var(--accent); outline: none; }
+.fk-panel { border-top: 2px solid var(--accent); background: rgba(0,212,255,0.03); flex-shrink: 0; max-height: 240px; display: flex; flex-direction: column; }
+.fk-panel-header { display:flex; align-items:center; gap:8px; padding:6px 12px; background: rgba(0,212,255,0.08); border-bottom:1px solid rgba(0,212,255,0.15); position:sticky; top:0; z-index:1; flex-shrink:0; }
+.fk-panel-header span { font-size:11px; font-weight:600; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; }
+.fk-panel-header .fk-count { color:var(--text-muted); font-weight:400; font-size:10px; }
+.fk-panel-scroll { overflow-y:auto; flex:1; padding:6px 12px 8px; }
+.fk-row { display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:3px; margin-bottom:4px; background:rgba(0,212,255,0.04); border:1px solid rgba(0,212,255,0.08); }
+.fk-row:hover { background:rgba(0,212,255,0.07); }
+.fk-row .fk-col-label { font-size:11px; font-weight:500; color:var(--text); min-width:80px; }
+.fk-row .fk-ref-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.3px; }
+.fk-row select { font-size:11px; padding:2px 6px; border:1px solid var(--border); border-radius:3px; background:var(--bg); color:var(--text); cursor:pointer; }
+.fk-row select:hover { border-color:var(--accent); }
+.fk-row .fk-sep { color:var(--text-muted); font-size:10px; }
 .code-area { flex: 1; display: flex; flex-direction: column; }
 .code-area textarea { flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; font-family: var(--font); font-size: 12px; resize: none; tab-size: 2; line-height: 1.6; }
 .code-area textarea:focus { outline: none; border-color: var(--accent); }
@@ -950,11 +962,27 @@ function renderTableDesigner() {
     html += '<td style="text-align:center"><input type="checkbox" '+(col.foreignKey?'checked':'')+' onchange="toggleFK('+i+',this.checked)"></td>';
     html += '<td><input value="'+escapeHtml(col.comment||'')+'" oninput="updateCol('+i+',\'comment\',this.value)" placeholder="comment"></td>';
     html += '<td class="col-actions"><button onclick="deleteColumn('+i+')">&#x2715;</button></td></tr>';
-    if (col.foreignKey) {
-      html += '<tr class="fk-detail-row"><td colspan="10" style="padding:4px 8px 8px 32px;background:var(--surface)"><span class="fk-ref-group"><span style="color:var(--text-muted);font-size:11px">REFERENCES</span><input class="fk-input" value="'+escapeHtml(col.refTable||'')+'" oninput="updateCol('+i+',\'refTable\',this.value)" placeholder="table"><span style="color:var(--text-muted)">.</span><input class="fk-input" value="'+escapeHtml(col.refColumn||'')+'" oninput="updateCol('+i+',\'refColumn\',this.value)" placeholder="column" style="width:90px"><span style="color:var(--text-muted);font-size:11px;margin-left:12px">ON DELETE</span><select onchange="updateCol('+i+',\'onDelete\',this.value)" style="font-size:11px;padding:1px 4px"><option value="">--</option><option value="CASCADE" '+(col.onDelete==='CASCADE'?'selected':'')+'>CASCADE</option><option value="SET NULL" '+(col.onDelete==='SET NULL'?'selected':'')+'>SET NULL</option><option value="RESTRICT" '+(col.onDelete==='RESTRICT'?'selected':'')+'>RESTRICT</option><option value="NO ACTION" '+(col.onDelete==='NO ACTION'?'selected':'')+'>NO ACTION</option></select><span style="color:var(--text-muted);font-size:11px;margin-left:8px">ON UPDATE</span><select onchange="updateCol('+i+',\'onUpdate\',this.value)" style="font-size:11px;padding:1px 4px"><option value="">--</option><option value="CASCADE" '+(col.onUpdate==='CASCADE'?'selected':'')+'>CASCADE</option><option value="SET NULL" '+(col.onUpdate==='SET NULL'?'selected':'')+'>SET NULL</option><option value="RESTRICT" '+(col.onUpdate==='RESTRICT'?'selected':'')+'>RESTRICT</option><option value="NO ACTION" '+(col.onUpdate==='NO ACTION'?'selected':'')+'>NO ACTION</option></select></span></td></tr>';
-    }
   });
   html += '</tbody></table>';
+  var fkCols = [];
+  state.columns.forEach(function(c,i){if(c.foreignKey&&c.name.trim())fkCols.push({col:c,idx:i});});
+  if (fkCols.length) {
+    html += '<div class="fk-panel"><div class="fk-panel-header"><span>REFERENCES</span><span class="fk-count">'+fkCols.length+' foreign key(s)</span></div><div class="fk-panel-scroll">';
+    fkCols.forEach(function(fk){
+      var col = fk.col, idx = fk.idx;
+      html += '<div class="fk-row"><span class="fk-col-label">'+escapeHtml(col.name)+'</span><span class="fk-ref-label">REFERENCES</span>';
+      html += '<input class="fk-input" value="'+escapeHtml(col.refTable||'')+'" oninput="updateCol('+idx+',\'refTable\',this.value)" placeholder="table" style="width:90px">';
+      html += '<span class="fk-sep">.</span>';
+      html += '<input class="fk-input" value="'+escapeHtml(col.refColumn||'')+'" oninput="updateCol('+idx+',\'refColumn\',this.value)" placeholder="column" style="width:80px">';
+      html += '<span class="fk-sep">|</span>';
+      html += '<span style="font-size:10px;color:var(--text-muted)">ON DELETE</span>';
+      html += '<select onchange="updateCol('+idx+',\'onDelete\',this.value)"><option value="">--</option><option value="CASCADE" '+(col.onDelete==='CASCADE'?'selected':'')+'>CASCADE</option><option value="SET NULL" '+(col.onDelete==='SET NULL'?'selected':'')+'>SET NULL</option><option value="RESTRICT" '+(col.onDelete==='RESTRICT'?'selected':'')+'>RESTRICT</option><option value="NO ACTION" '+(col.onDelete==='NO ACTION'?'selected':'')+'>NO ACTION</option><option value="SET DEFAULT" '+(col.onDelete==='SET DEFAULT'?'selected':'')+'>SET DEFAULT</option></select>';
+      html += '<span style="font-size:10px;color:var(--text-muted)">ON UPDATE</span>';
+      html += '<select onchange="updateCol('+idx+',\'onUpdate\',this.value)"><option value="">--</option><option value="CASCADE" '+(col.onUpdate==='CASCADE'?'selected':'')+'>CASCADE</option><option value="SET NULL" '+(col.onUpdate==='SET NULL'?'selected':'')+'>SET NULL</option><option value="RESTRICT" '+(col.onUpdate==='RESTRICT'?'selected':'')+'>RESTRICT</option><option value="NO ACTION" '+(col.onUpdate==='NO ACTION'?'selected':'')+'>NO ACTION</option><option value="SET DEFAULT" '+(col.onUpdate==='SET DEFAULT'?'selected':'')+'>SET DEFAULT</option></select>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
   container.innerHTML = html;
 }
 
