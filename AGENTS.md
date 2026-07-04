@@ -31,13 +31,15 @@ A standalone Express server implementing the **Virtual SQL Server Engine (VSSE)*
 ├── plugins/
 │   └── README.md
 ├── public/
-│   ├── index.html            # Full SPA — Tree browser, table designer, 4-pane DDL, canvas-based QBE, ER diagram, build/explain, modals, toasts (~1500 lines)
+│   ├── index.html            # Full SPA — Tree browser, table designer, 4-pane DDL, canvas-based QBE, ER diagram, build/explain, modals, toasts (~1500 lines) → now 1850+ lines after all feature ports
 │   └── fonts/                # Local font files (Inter, JetBrains Mono)
 ├── docs/
 │   ├── VIRTUAL_SQL_SERVER_ENGINE_PAPER.md   # VSSE concept paper
 │   └── VIRTUAL_SQL_SERVER_ENGINE_PAPER.pdf  # Printable PDF
 ├── scripts/
-│   └── generate-paper-pdf.js # PDF generation from markdown
+│   ├── generate-paper-pdf.js # PDF generation from markdown
+│   └── record-video.js       # Automated 3-min demo video (puppeteer-core + FFmpeg)
+├── vsse-demo.mp4             # 3-minute walkthrough video (generated)
 └── test/                     # Node --test test files
 ```
 
@@ -96,6 +98,9 @@ This is commit 1 — standalone project forked from Hexagon Web Framework v3.14.
 | 2026-07-04 | `refactor-spa` | Major refactor: extracted routes.js from index.js, refactored server.js to 20 lines, full SPA index.html (5 tabs), local fonts, added test/ dir, port 4005, type map expansion |
 | 2026-07-04 | `squash-spa-v2` | Ported 12 features from Hexagon reference: tree browser (localStorage), table designer (FK/PK/UK inline), code editor (VIEW/FUNCTION/PROCEDURE/TRIGGER), 4-pane SQL grid, build/explain output, QBE canvas (tables/joins/conditions/group/order/union/keywords/results), ER diagram (SVG), modals, toasts, import/export SQL, schema/role forms, keyboard shortcuts. index.html: 633→1396 lines. |
 | 2026-07-04 | `gap-analysis-port` | Gap analysis vs Hexagon reference: ported comment column + FK auto-defaults (`NO ACTION`) + debounced preview (800ms); export with header/engine detection on import via `detectEngine()`; canvas-based QBE with table browser (drag-to-add), table cards with column chips, auto-join detection by FK name, visual WHERE/GROUP/HAVING/ORDER by sections with field dropdowns, keyword chips, debounced auto-generate (1s), syntax check badge, execute with loading spinner + clear confirmation dialog. index.html: ~1500 lines. |
+| 2026-07-04 | `audit-fix-v1` | Systematic audit of all 3 sections (Designer, QBE, Tree/ER): fixed toast container, modal HTML/CSS, ER SVG export, deleteColumn, constraint dialog, init() duplication, auto-join FKs, ER zoom/pan, 7 missing CSS classes, dead code removal. Added advanced error handler (global onerror/unhandledrejection, safeFetch, error log). |
+| 2026-07-04 | `feat-designer-fk-panel` | Restructured REFERENCES section from inline table rows into a distinct sticky bottom panel with accent theme, scroll, cascade dropdowns, SET DEFAULT option. Applied same refactor to Hexagon Web Framework. |
+| 2026-07-04 | `video-recording` | Created automated 3-min demo video via puppeteer-core + Edge + FFmpeg. Script at `scripts/record-video.js` captures 180s walkthrough of Designer, QBE, ER Diagram at 1920×1080. Output: `vsse-demo.mp4`. |
 
 ## Deployment (Railway)
 
