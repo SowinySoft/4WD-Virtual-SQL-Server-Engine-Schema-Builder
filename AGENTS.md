@@ -32,7 +32,7 @@ A standalone Express server implementing the **Virtual SQL Server Engine (VSSE)*
 ├── plugins/
 │   └── README.md
 ├── public/
-│   ├── index.html            # Full SPA — all 5 tabs + QBE canvas + ER diagram + modals/toasts (1887 lines)
+│   ├── index.html            # Full SPA — all 5 tabs + QBE canvas + ER diagram (drag-drop, auto-arrange, FK lines, PNG/PDF/SVG export, save/load) + modals/toasts (2102 lines)
 │   └── fonts/                # Local font files (Inter, JetBrains Mono)
 ├── docs/
 │   ├── VIRTUAL_SQL_SERVER_ENGINE_PAPER.md   # VSSE concept paper
@@ -104,6 +104,7 @@ This is commit 1 — standalone project forked from Hexagon Web Framework v3.14.
 | 2026-07-04 | `video-recording` | Created automated 3-min demo video via puppeteer-core + Edge + FFmpeg. Script at `scripts/record-video.js` captures 180s walkthrough of Designer, QBE, ER Diagram at 1920×1080. Output: `vsse-demo.mp4`. |
 | 2026-07-05 | `publish-paper` | VSSE concept paper submitted to ScienceOpen.com (under editorial review). Project entered in BeMyApp AI Builders Challenge (IBM SkillsBuild) at https://aibuilderschallenge-bobhub.bemyapp.com/#/projects |
 | 2026-07-05 | `330c285` | Deep audit: fixed 13 bugs (MSSQL mat-view, config typeMappings sync, Add Constraint no-op, builder.test.js, MSSQL QBE quoting, NVARCHAR/NCHAR map, tree sync, execSync dead import, MSSQL column comments, FK schema prefix, TINYINT, CLI port, QBE groupBy). 2 low items verified as non-issues. 65 tests pass. |
+| 2026-07-05 | (current) | ER diagram enhancements: draggable entities (mousedown/move/up + localStorage positions), auto-arrange grid layout, FK relationship lines (cubic Bezier curves with live drag update), 🔑 PK + 🔗 FK column indicators, arrow markers. Export: PNG (2x canvas render), PDF (print dialog), SVG, JSON save/load (.erd.json). |
 
 ## Deployment (Railway)
 

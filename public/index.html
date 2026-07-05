@@ -507,8 +507,15 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
     <div class="er-toolbar">
       <span class="er-title">Entity Relationship Diagram</span>
       <button class="btn" onclick="erRefresh()">&#x1F504; Refresh</button>
+      <button class="btn" onclick="erAutoArrange()">&#x1F500; Auto-arrange</button>
       <span class="er-sep"></span>
       <button class="btn" onclick="erExportSVG()">&#x2B07; SVG</button>
+      <button class="btn" onclick="erExportPNG()">&#x1F5BC; PNG</button>
+      <button class="btn" onclick="erExportPDF()">&#x1F4C4; PDF</button>
+      <span class="er-sep"></span>
+      <button class="btn" onclick="erSaveDiagram()">&#x1F4BE; Save</button>
+      <button class="btn" onclick="document.getElementById('erLoadInput').click()">&#x1F4C2; Load</button>
+      <input type="file" id="erLoadInput" accept=".erd.json" onchange="erLoadDiagram(event)" style="display:none">
       <span class="er-sep"></span>
       <button class="btn" onclick="erFitToScreen()">&#x26F0; Fit</button>
       <button class="btn" onclick="erZoomIn()">&#x2795;</button>
@@ -1578,54 +1585,267 @@ function qbeRemoveTable(index) {
   qbeRenderCanvas(); qbeRenderTableBrowser(); qbeGenerate();
 }
 // --- ER Diagram -------------------------------------------
+// --- ER Diagram state --------------------------------------
+var erPositions = {};
+var erDragging = null;
+var erTableData = [];
+const erColW = 180, erRowH = 20, erHeaderH = 28;
+
+function erLoadPositions() {
+  try { var saved = localStorage.getItem('erPositions'); if (saved) erPositions = JSON.parse(saved); } catch(e) {}
+}
+function erSavePositions() {
+  try { localStorage.setItem('erPositions', JSON.stringify(erPositions)); } catch(e) {}
+}
+
 function generateER() {
+  erLoadPositions();
   const container = document.getElementById('erCanvas');
   function collectTables(nodes) {
-    let result = [];
+    var result = [];
     (nodes||[]).forEach(function(n){
       if ((n.type==='TABLE'||n.type==='VIEW') && n.name && n.columns) result.push(n);
       if (n.children) result = result.concat(collectTables(n.children));
     });
     return result;
   }
-  const tables = collectTables(treeData);
+  var tables = collectTables(treeData);
   if (!tables.length) { container.innerHTML = '<div style="padding:12px;color:var(--text-muted)">No tables in tree. Add tables via the Designer tab first.</div>'; return; }
-  const schemas = [{ schema:'public', tables:tables.map(function(t){ return { name:t.name, columns:(t.columns||[]).map(function(c){ return { name:c.name, type:c.type||'', primaryKey:!!c.primaryKey, isPrimaryKey:!!c.isPrimaryKey }; }) }; }) }];
-  renderERDiagram(schemas, container);
+  erTableData = tables.map(function(t){
+    var fks = [];
+    (t.columns||[]).forEach(function(c){ if (c.foreignKey && c.refTable) fks.push({ column:c.name, refTable:c.refTable, refColumn:c.refColumn }); });
+    (t.foreignKeys||[]).forEach(function(fk){ fks.push({ column:(fk.columns||[])[0]||'', refTable:fk.refTable, refColumn:(fk.refColumns||[])[0]||'' }); });
+    return { name:t.name, columns:(t.columns||[]).map(function(c){ return { name:c.name, type:c.type||'', primaryKey:!!c.primaryKey, isPrimaryKey:!!c.isPrimaryKey }; }), foreignKeys:fks };
+  });
+  renderERDiagram(container);
   showToast('ER diagram generated from '+tables.length+' tables','success');
 }
 
-function renderERDiagram(schemas, container) {
-  let svgW = 1200, svgH = 200, tableRects = [], x = 20, y = 20;
-  const colW = 180, rowH = 20, headerH = 28, margin = 12, gapX = 30, gapY = 30;
-  const maxPerRow = 5;
-  schemas.forEach(function(schema){
-    schema.tables.forEach(function(tbl, idx){
-      if (idx > 0 && idx % maxPerRow === 0) { x = 20; y = svgH; svgH += 20; }
-      const h = headerH + (tbl.columns||[]).length * rowH + 8;
-      tableRects.push({ x:x, y:y, w:colW, h:h, schema:schema.schema||'public', table:tbl, label:tbl.name });
-      x += colW + gapX;
-      if (x + colW > svgW) svgW = x + colW + 100;
-    });
-    x = 20; y += 250; svgH = y + 200;
+function renderERDiagram(container) {
+  var tables = erTableData;
+  if (!tables.length) return;
+  var x = 30, y = 30, svgW = 1200, svgH = 400, placed = {};
+  var maxPerRow = 5, gapX = 40, gapY = 50, idx = 0;
+  var needsAutoArrange = false;
+  tables.forEach(function(t){
+    if (erPositions[t.name]) { placed[t.name] = erPositions[t.name]; }
+    else { needsAutoArrange = true; }
   });
-  svgH = Math.max(svgH + 100, 400);
-  let svg = '<svg id="erSvg" width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:var(--bg);font-family:monospace;font-size:11px">';
-  svg += '<defs><filter id="er-shadow"><feDropShadow dx="1" dy="1" stdDeviation="1" flood-opacity="0.15"/></filter></defs>';
-  tableRects.forEach(function(tr){
-    svg += '<rect x="'+tr.x+'" y="'+tr.y+'" width="'+tr.w+'" height="'+tr.h+'" rx="3" fill="var(--surface)" stroke="var(--border)" stroke-width="1" filter="url(#er-shadow)"/>';
-    svg += '<rect x="'+tr.x+'" y="'+tr.y+'" width="'+tr.w+'" height="'+headerH+'" rx="3" fill="var(--accent)" opacity="0.15"/>';
-    svg += '<text x="'+(tr.x+8)+'" y="'+(tr.y+headerH-8)+'" fill="var(--accent)" font-weight="bold" font-size="12">'+escapeHtml(tr.label)+'</text>';
-    (tr.table.columns||[]).forEach(function(col, ci){
-      const cy = tr.y + headerH + 4 + ci * rowH;
-      const pk = col.primaryKey || col.isPrimaryKey;
-      svg += '<text x="'+(tr.x+8)+'" y="'+(cy+rowH-4)+'" fill="var(--text)">'+(pk?'&#x1F511; ':'')+escapeHtml(col.name||col.column||'')+'</text>';
-      svg += '<text x="'+(tr.x+tr.w-8)+'" y="'+(cy+rowH-4)+'" fill="var(--text-muted)" text-anchor="end" font-size="10">'+escapeHtml(col.type||col.dataType||'')+'</text>';
+  if (needsAutoArrange || Object.keys(placed).length === 0) {
+    erPositions = {};
+    var cx = 30, cy = 30, perRow = 0;
+    tables.forEach(function(t){
+      if (perRow >= maxPerRow) { cx = 30; cy += 250; perRow = 0; }
+      erPositions[t.name] = { x:cx, y:cy };
+      placed[t.name] = { x:cx, y:cy };
+      cx += erColW + gapX; perRow++;
+      if (cx + erColW + 50 > svgW) svgW = cx + erColW + 100;
+    });
+    svgH = cy + 300;
+    erSavePositions();
+  }
+  tables.forEach(function(t){
+    var p = placed[t.name] || { x:30, y:30 };
+    var h = erHeaderH + (t.columns||[]).length * erRowH + 8;
+    if (p.x + erColW + 50 > svgW) svgW = p.x + erColW + 100;
+    if (p.y + h + 50 > svgH) svgH = p.y + h + 50;
+    p.h = h;
+  });
+  var conSvg = '', tblSvg = '';
+  // Connections (behind tables)
+  tables.forEach(function(t){
+    (t.foreignKeys||[]).forEach(function(fk){
+      var srcP = placed[t.name], dstP = placed[fk.refTable];
+      if (!srcP || !dstP) return;
+      var srcX = srcP.x + erColW, srcY = srcP.y + srcP.h/2;
+      var dstX = dstP.x, dstY = dstP.y + dstP.h/2;
+      var cpx = (srcX + dstX) / 2;
+      conSvg += '<path d="M'+srcX+','+srcY+' C'+cpx+','+srcY+' '+cpx+','+dstY+' '+dstX+','+dstY+'" fill="none" stroke="var(--cyan)" stroke-width="1" opacity="0.6" marker-end="url(#erArrow)"/>';
     });
   });
-  svg += '</svg>';
+  // Tables (on top)
+  tables.forEach(function(t){
+    var p = placed[t.name];
+    if (!p) return;
+    var h = p.h;
+    var id = 'er-tbl-' + t.name.replace(/[^a-zA-Z0-9]/g, '_');
+    tblSvg += '<g class="er-table" id="'+id+'" data-name="'+escapeHtml(t.name)+'" transform="translate('+p.x+','+p.y+')" style="cursor:grab">';
+    tblSvg += '<rect class="er-table-bg" width="'+erColW+'" height="'+h+'" rx="4" fill="var(--surface)" stroke="var(--border)" stroke-width="1" filter="url(#erShadow)"/>';
+    tblSvg += '<rect class="er-table-header" width="'+erColW+'" height="'+erHeaderH+'" rx="4" fill="var(--accent)" opacity="0.15"/>';
+    tblSvg += '<text x="8" y="'+(erHeaderH-8)+'" fill="var(--accent)" font-weight="bold" font-size="12">'+escapeHtml(t.name)+'</text>';
+    (t.columns||[]).forEach(function(col, ci){
+      var cy = erHeaderH + 4 + ci * erRowH;
+      var pk = col.primaryKey || col.isPrimaryKey;
+      var fk = (t.foreignKeys||[]).some(function(f){ return f.column === col.name; });
+      var label = (pk ? '\u{1F511} ' : '') + (fk ? '\u{1F517} ' : '') + escapeHtml(col.name);
+      tblSvg += '<text x="8" y="'+(cy+erRowH-4)+'" fill="var(--text)">'+label+'</text>';
+      tblSvg += '<text x="'+(erColW-8)+'" y="'+(cy+erRowH-4)+'" fill="var(--text-muted)" text-anchor="end" font-size="10">'+escapeHtml(col.type)+'</text>';
+    });
+    tblSvg += '</g>';
+  });
+  var svg = '<svg id="erSvg" width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:var(--bg);font-family:monospace;font-size:11px">';
+  svg += '<defs><marker id="erArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="none" stroke="var(--cyan)" stroke-width="1"/></marker><filter id="erShadow"><feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/></filter></defs>';
+  svg += '<g id="erConnections">'+conSvg+'</g><g id="erTables">'+tblSvg+'</g></svg>';
   container.innerHTML = svg;
+  // Wire drag handlers
+  container.querySelectorAll('.er-table').forEach(function(g){
+    g.addEventListener('mousedown', erMouseDown);
+  });
 }
+
+// --- ER Drag handlers --------------------------------------
+function erMouseDown(e) {
+  if (e.button !== 0) return;
+  var g = e.currentTarget;
+  var name = g.getAttribute('data-name');
+  var rect = g.getBoundingClientRect();
+  var svg = g.closest('svg');
+  var svgRect = svg.getBoundingClientRect();
+  var scaleX = parseInt(svg.getAttribute('width')) / svgRect.width;
+  var scaleY = parseInt(svg.getAttribute('height')) / svgRect.height;
+  // Parse current transform
+  var m = g.getAttribute('transform') || 'translate(0,0)';
+  var match = m.match(/translate\(([\d.]+),([\d.]+)\)/);
+  var ox = match ? parseFloat(match[1]) : 0;
+  var oy = match ? parseFloat(match[2]) : 0;
+  erDragging = { name:name, g:g, startX:e.clientX, startY:e.clientY, origX:ox, origY:oy, svg:svg, scaleX:scaleX, scaleY:scaleY };
+  g.style.cursor = 'grabbing';
+  document.addEventListener('mousemove', erMouseMove);
+  document.addEventListener('mouseup', erMouseUp);
+  e.preventDefault();
+}
+function erMouseMove(e) {
+  if (!erDragging) return;
+  var dx = (e.clientX - erDragging.startX) * erDragging.scaleX;
+  var dy = (e.clientY - erDragging.startY) * erDragging.scaleY;
+  var nx = erDragging.origX + dx;
+  var ny = erDragging.origY + dy;
+  erDragging.g.setAttribute('transform', 'translate('+nx+','+ny+')');
+  erUpdateConnections();
+}
+function erMouseUp(e) {
+  if (!erDragging) return;
+  document.removeEventListener('mousemove', erMouseMove);
+  document.removeEventListener('mouseup', erMouseUp);
+  erDragging.g.style.cursor = 'grab';
+  // Save position
+  var m = erDragging.g.getAttribute('transform');
+  var match = m.match(/translate\(([\d.]+),([\d.]+)\)/);
+  if (match) {
+    erPositions[erDragging.name] = { x:parseFloat(match[1]), y:parseFloat(match[2]) };
+    erSavePositions();
+  }
+  erDragging = null;
+}
+function erUpdateConnections() {
+  var svg = document.getElementById('erSvg');
+  if (!svg) return;
+  var conG = document.getElementById('erConnections');
+  if (!conG) return;
+  var paths = [];
+  var tables = erTableData;
+  // Recalculate all positions from transform attributes
+  var positions = {};
+  svg.querySelectorAll('.er-table').forEach(function(g){
+    var name = g.getAttribute('data-name');
+    var m = g.getAttribute('transform') || 'translate(0,0)';
+    var match = m.match(/translate\(([\d.]+),([\d.]+)\)/);
+    var x = match ? parseFloat(match[1]) : 0;
+    var y = match ? parseFloat(match[2]) : 0;
+    var bg = g.querySelector('.er-table-bg');
+    var h = bg ? parseFloat(bg.getAttribute('height')) : 150;
+    positions[name] = { x:x, y:y, h:h };
+  });
+  tables.forEach(function(t){
+    (t.foreignKeys||[]).forEach(function(fk){
+      var srcP = positions[t.name], dstP = positions[fk.refTable];
+      if (!srcP || !dstP) return;
+      var srcX = srcP.x + erColW, srcY = srcP.y + srcP.h/2;
+      var dstX = dstP.x, dstY = dstP.y + dstP.h/2;
+      var cpx = (srcX + dstX) / 2;
+      paths.push({ d:'M'+srcX+','+srcY+' C'+cpx+','+srcY+' '+cpx+','+dstY+' '+dstX+','+dstY });
+    });
+  });
+  conG.innerHTML = paths.map(function(p){
+    return '<path d="'+p.d+'" fill="none" stroke="var(--cyan)" stroke-width="1" opacity="0.6" marker-end="url(#erArrow)"/>';
+  }).join('');
+}
+
+// --- ER toolbar actions ------------------------------------
+function erAutoArrange() {
+  erPositions = {};
+  renderERDiagram(document.getElementById('erCanvas'));
+  showToast('Auto-arranged','success');
+}
+function erRefresh() { generateER(); }
+function erExportSVG() { var svg=document.getElementById('erSvg')||document.querySelector('#erCanvas svg'); if(!svg){showToast('No ER diagram to export','error');return;} var s=new XMLSerializer().serializeToString(svg); var blob=new Blob([s],{type:'image/svg+xml'}); var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='er-diagram.svg';a.click();URL.revokeObjectURL(a.href);showToast('SVG exported','success'); }
+function erExportPNG() {
+  var svg = document.getElementById('erSvg');
+  if (!svg) { showToast('No ER diagram to export','error'); return; }
+  var s = new XMLSerializer().serializeToString(svg);
+  var c = document.createElement('canvas');
+  var w = parseInt(svg.getAttribute('width'))||1200, h = parseInt(svg.getAttribute('height'))||800;
+  c.width = w * 2; c.height = h * 2;
+  var ctx = c.getContext('2d');
+  ctx.scale(2,2);
+  var img = new Image();
+  var blob = new Blob([s], {type:'image/svg+xml;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  img.onload = function() {
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#1a1a2e';
+    ctx.fillRect(0,0,w,h);
+    ctx.drawImage(img,0,0,w,h);
+    URL.revokeObjectURL(url);
+    c.toBlob(function(pngBlob){
+      var a = document.createElement('a'); a.href = URL.createObjectURL(pngBlob); a.download = 'er-diagram.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      showToast('PNG exported (2x resolution)','success');
+    },'image/png');
+  };
+  img.onerror = function(){ showToast('PNG export failed — SVG to canvas conversion error','error'); };
+  img.src = url;
+}
+function erExportPDF() {
+  var svg = document.getElementById('erSvg');
+  if (!svg) { showToast('No ER diagram to export','error'); return; }
+  var w = parseInt(svg.getAttribute('width'))||1200, h = parseInt(svg.getAttribute('height'))||800;
+  var pw = Math.min(w + 40, 800), ph = Math.min(h + 40, 1200);
+  var printWin = window.open('','_blank','width=800,height=600,scrollbars=yes');
+  if (!printWin) { showToast('Popup blocked — allow popups for PDF export','error'); return; }
+  var s = new XMLSerializer().serializeToString(svg);
+  var bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#1a1a2e';
+  printWin.document.write('<!DOCTYPE html><html><head><title>ER Diagram</title><style>body{margin:20px;text-align:center}svg{max-width:'+pw+'px;max-height:'+ph+'px;background:'+bg+';font-family:monospace;font-size:11px}@media print{@page{size:auto;margin:15mm}body{margin:0}svg{max-width:100%;max-height:100%}}</style></head><body>'+s+'<script>window.onload=function(){window.print();setTimeout(function(){window.close();},500);}<\/script></body></html>');
+  printWin.document.close();
+}
+function erSaveDiagram() {
+  var svg = document.getElementById('erSvg');
+  if (!svg || !erTableData.length) { showToast('No diagram to save — generate it first','error'); return; }
+  var data = { version:1, timestamp:new Date().toISOString(), positions:erPositions, tables:erTableData };
+  var blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'er-diagram.erd.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  showToast('Diagram saved ('+erTableData.length+' tables)','success');
+}
+function erLoadDiagram(event) {
+  var file = event.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (!data.version || !data.tables || !data.positions) { showToast('Invalid .erd.json file','error'); return; }
+      erPositions = data.positions || {};
+      erTableData = data.tables || [];
+      erSavePositions();
+      renderERDiagram(document.getElementById('erCanvas'));
+      showToast('Diagram loaded: '+erTableData.length+' tables','success');
+    } catch(err) { showToast('Load error: '+err.message,'error'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+function erFitToScreen() { var c=document.getElementById('erCanvas'); var s=c.querySelector('svg'); if(!s)return; var r=c.getBoundingClientRect(); s.setAttribute('width',Math.max(r.width-20,400)); s.setAttribute('height',Math.max(r.height-20,200)); showToast('Fit to screen','info'); }
+function erZoomIn() { var s=document.querySelector('#erCanvas svg'); if(!s)return; var w=parseInt(s.getAttribute('width'))||1200, h=parseInt(s.getAttribute('height'))||800; s.setAttribute('width',w*1.2); s.setAttribute('height',h*1.2); }
+function erZoomOut() { var s=document.querySelector('#erCanvas svg'); if(!s)return; var w=parseInt(s.getAttribute('width'))||1200, h=parseInt(s.getAttribute('height'))||800; s.setAttribute('width',Math.max(w/1.2,200)); s.setAttribute('height',Math.max(h/1.2,100)); }
 
 // --- Toast ------------------------------------------------
 function showToast(msg, type) {
@@ -1871,13 +2091,6 @@ async function treeRefresh() {
 function addConstraint() { showConstraintDialog(); }
 function loadTemplate() { loadCodeTemplate(document.getElementById('buildEngine').value); }
 
-
-// --- ER stubs ---------------------------------------------
-function erRefresh() { generateER(); }
-function erExportSVG() { var svg=document.getElementById('erSvg')||document.querySelector('#erCanvas svg'); if(!svg){showToast('No ER diagram to export','error');return;} var s=new XMLSerializer().serializeToString(svg); var blob=new Blob([s],{type:'image/svg+xml'}); var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='er-diagram.svg';a.click();URL.revokeObjectURL(a.href);showToast('SVG exported','success'); }
-function erFitToScreen() { var c=document.getElementById('erCanvas'); var s=c.querySelector('svg'); if(!s)return; var r=c.getBoundingClientRect(); s.setAttribute('width',Math.max(r.width-20,400)); s.setAttribute('height',Math.max(r.height-20,200)); showToast('Fit to screen','info'); }
-function erZoomIn() { var s=document.querySelector('#erCanvas svg'); if(!s)return; var w=parseInt(s.getAttribute('width'))||1200, h=parseInt(s.getAttribute('height'))||800; s.setAttribute('width',w*1.2); s.setAttribute('height',h*1.2); }
-function erZoomOut() { var s=document.querySelector('#erCanvas svg'); if(!s)return; var w=parseInt(s.getAttribute('width'))||1200, h=parseInt(s.getAttribute('height'))||800; s.setAttribute('width',Math.max(w/1.2,200)); s.setAttribute('height',Math.max(h/1.2,100)); }
 
 // --- Keyboard shortcuts -----------------------------------
 document.addEventListener('keydown', function(e) {
