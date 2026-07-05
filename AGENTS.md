@@ -11,27 +11,28 @@ A standalone Express server implementing the **Virtual SQL Server Engine (VSSE)*
 ```
 4WD VSSE Schema Builder/
 ├── server.js                 # Express 4 server (20 lines, port 4005, mounts lib/routes.js)
-├── package.json              # Deps: express, pg, mysql2, sql.js, mssql, commander
+├── package.json              # Deps: express, pg, mysql2, sql.js, mssql, commander, puppeteer-core
 ├── railway.json              # Railpack deploy config
 ├── AGENTS.md                 # This file
 ├── README.md
+├── USAGE.md                  # Quick-start usage instructions (added 2026-07-05)
 ├── .gitignore
 ├── .env.example
-├── index.js                  # CLI entry + module exports (~120 lines, dual-mode)
+├── index.js                  # CLI entry + module exports (138 lines, dual-mode)
 ├── config/
 │   ├── default.json          # Engine type mappings and categories (port 4005)
 │   └── index.js              # Config loader
 ├── lib/
-│   ├── routes.js             # Express router — all API routes (342 lines, extracted from index.js)
+│   ├── routes.js             # Express router — all API routes (346 lines)
 │   ├── designer.js           # Design object factories + validation (307 lines)
-│   ├── translator.js         # Engine dialect rules / type maps (227 lines)
-│   ├── ddl-generator.js      # DDL generation for 7 object types (423 lines)
-│   ├── builder.js            # Build + execute + explain + introspect (880 lines)
-│   └── templates.js          # Boilerplate code templates (173 lines)
+│   ├── translator.js         # Engine dialect rules / type maps (229 lines)
+│   ├── ddl-generator.js      # DDL generation for 7 object types (431 lines)
+│   ├── builder.js            # Build + execute + explain + introspect (879 lines)
+│   └── templates.js          # Boilerplate code templates (181 lines)
 ├── plugins/
 │   └── README.md
 ├── public/
-│   ├── index.html            # Full SPA — Tree browser, table designer, 4-pane DDL, canvas-based QBE, ER diagram, build/explain, modals, toasts (~1500 lines) → now 1850+ lines after all feature ports
+│   ├── index.html            # Full SPA — all 5 tabs + QBE canvas + ER diagram + modals/toasts (1887 lines)
 │   └── fonts/                # Local font files (Inter, JetBrains Mono)
 ├── docs/
 │   ├── VIRTUAL_SQL_SERVER_ENGINE_PAPER.md   # VSSE concept paper
@@ -40,7 +41,7 @@ A standalone Express server implementing the **Virtual SQL Server Engine (VSSE)*
 │   ├── generate-paper-pdf.js # PDF generation from markdown
 │   └── record-video.js       # Automated 3-min demo video (puppeteer-core + FFmpeg)
 ├── vsse-demo.mp4             # 3-minute walkthrough video (generated)
-└── test/                     # Node --test test files
+└── test/                     # Node --test test files (65 tests, 26 suites, including builder.test.js)
 ```
 
 ## API Routes
@@ -102,6 +103,7 @@ This is commit 1 — standalone project forked from Hexagon Web Framework v3.14.
 | 2026-07-04 | `feat-designer-fk-panel` | Restructured REFERENCES section from inline table rows into a distinct sticky bottom panel with accent theme, scroll, cascade dropdowns, SET DEFAULT option. Applied same refactor to Hexagon Web Framework. |
 | 2026-07-04 | `video-recording` | Created automated 3-min demo video via puppeteer-core + Edge + FFmpeg. Script at `scripts/record-video.js` captures 180s walkthrough of Designer, QBE, ER Diagram at 1920×1080. Output: `vsse-demo.mp4`. |
 | 2026-07-05 | `publish-paper` | VSSE concept paper submitted to ScienceOpen.com (under editorial review). Project entered in BeMyApp AI Builders Challenge (IBM SkillsBuild) at https://aibuilderschallenge-bobhub.bemyapp.com/#/projects |
+| 2026-07-05 | `330c285` | Deep audit: fixed 13 bugs (MSSQL mat-view, config typeMappings sync, Add Constraint no-op, builder.test.js, MSSQL QBE quoting, NVARCHAR/NCHAR map, tree sync, execSync dead import, MSSQL column comments, FK schema prefix, TINYINT, CLI port, QBE groupBy). 2 low items verified as non-issues. 65 tests pass. |
 
 ## Deployment (Railway)
 
