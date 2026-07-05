@@ -101,6 +101,7 @@ This is commit 1 — standalone project forked from Hexagon Web Framework v3.14.
 | 2026-07-04 | `audit-fix-v1` | Systematic audit of all 3 sections (Designer, QBE, Tree/ER): fixed toast container, modal HTML/CSS, ER SVG export, deleteColumn, constraint dialog, init() duplication, auto-join FKs, ER zoom/pan, 7 missing CSS classes, dead code removal. Added advanced error handler (global onerror/unhandledrejection, safeFetch, error log). |
 | 2026-07-04 | `feat-designer-fk-panel` | Restructured REFERENCES section from inline table rows into a distinct sticky bottom panel with accent theme, scroll, cascade dropdowns, SET DEFAULT option. Applied same refactor to Hexagon Web Framework. |
 | 2026-07-04 | `video-recording` | Created automated 3-min demo video via puppeteer-core + Edge + FFmpeg. Script at `scripts/record-video.js` captures 180s walkthrough of Designer, QBE, ER Diagram at 1920×1080. Output: `vsse-demo.mp4`. |
+| 2026-07-05 | `publish-paper` | VSSE concept paper submitted to ScienceOpen.com (under editorial review). Project entered in BeMyApp AI Builders Challenge (IBM SkillsBuild) at https://aibuilderschallenge-bobhub.bemyapp.com/#/projects |
 
 ## Deployment (Railway)
 
