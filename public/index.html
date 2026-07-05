@@ -707,7 +707,7 @@ function treeAddObject(parentId, type) {
 }
 function treeActivate(id) {
   const node = treeFindNode(id);
-  if (!node) return; selectedNodeId = id; treeRender();
+  if (!node) return; selectedNodeId = id; state._activeTreeNode = node; treeRender();
   const dbConfig = treeGetDbConfig(id);
   if (dbConfig) {
     document.getElementById('buildEngine').value = dbConfig.engine||'postgresql';
@@ -1015,7 +1015,7 @@ function collectDesign() {
       col.defaultValue = c.default||null;
       return col;
     });
-    var constraints = [];
+    var constraints = (state.constraints||[]).slice(); // start with dialog-added constraints
     var pkCols = state.columns.filter(function(c){return c.primaryKey && c.name.trim();});
     if (pkCols.length > 1) { constraints.push({ type:'PRIMARY KEY', columns: pkCols.map(function(c){return c.name.trim();}) }); pkCols.forEach(function(c){c.primaryKeyInConstraint=true;}); }
     var ukCols = state.columns.filter(function(c){return c.unique && c.name.trim() && !c.primaryKey;});
@@ -1332,7 +1332,7 @@ async function qbeGenerateNow() {
     tables: qbeState.tables.map(function(t){return {schema:t.schema, name:t.name, alias:t.alias};}),
     joins: qbeState.joins,
     where: qbeState.whererows,
-    groupBy: qbeState.groupByRows.map(function(g){return g.expression||(g.field?g.field:'');}),
+    groupBy: qbeState.groupByRows.map(function(g){return g.expression ? {expression:g.expression} : {field:g.field||''};}),
     having: qbeState.havingRows,
     orderBy: qbeState.orderByRows.map(function(o){return o.expression?{expression:o.expression,direction:o.direction}:{field:o.field,direction:o.direction};}),
     columns: qbeState.selectedCols.map(function(c){return {table:c.tableKey, column:c.columnName, alias:c.alias, expression:c.expression};}),
@@ -1657,7 +1657,7 @@ function deleteColumn(i) { state.columns.splice(i,1); if (document.getElementByI
 function moveColumn(i, dir) { if (i+dir<0||i+dir>=state.columns.length) return; var tmp=state.columns[i]; state.columns[i]=state.columns[i+dir]; state.columns[i+dir]=tmp; renderTableDesigner(); onDesignChange(); }
 function updateCol(i, field, val) { state.columns[i][field]=val; onDesignChange(); }
 function toggleFK(i, checked) { state.columns[i].foreignKey=checked; if (checked) { if (!state.columns[i].onDelete) state.columns[i].onDelete='NO ACTION'; if (!state.columns[i].onUpdate) state.columns[i].onUpdate='NO ACTION'; } else { state.columns[i].refTable='';state.columns[i].refColumn='';state.columns[i].onDelete='';state.columns[i].onUpdate=''; } renderTableDesigner(); onDesignChange(); }
-function getTypeOptions() { return ['SERIAL','BIGSERIAL','INTEGER','BIGINT','SMALLINT','VARCHAR','CHAR','TEXT','CLOB','BOOLEAN','DATE','TIME','TIMESTAMP','TIMESTAMPTZ','INTERVAL','FLOAT','DOUBLE','DECIMAL','NUMERIC','MONEY','UUID','JSON','JSONB','BYTEA','BLOB','INET','CIDR','ENUM','ARRAY','GEOMETRY']; }
+function getTypeOptions() { return ['SERIAL','BIGSERIAL','INTEGER','BIGINT','SMALLINT','TINYINT','VARCHAR','CHAR','TEXT','CLOB','BOOLEAN','DATE','TIME','TIMESTAMP','TIMESTAMPTZ','INTERVAL','FLOAT','DOUBLE','DECIMAL','NUMERIC','MONEY','UUID','JSON','JSONB','BYTEA','BLOB','INET','CIDR','ENUM','ARRAY','GEOMETRY']; }
 function updateColCount() {
   var count = state.columns.length;
   var el = document.getElementById('colCount');
@@ -1808,16 +1808,29 @@ function onDesignChange() {
 
 // --- Constraint dialog -----------------------------------
 function showConstraintDialog() {
-  var html = '<div class="field"><label>Constraint Type</label><select id="constraintTypeInput"><option value="PRIMARY KEY">PRIMARY KEY</option><option value="FOREIGN KEY">FOREIGN KEY</option><option value="UNIQUE">UNIQUE</option><option value="CHECK">CHECK</option></select></div>';
+  var html = '<div class="field"><label>Constraint Type</label><select id="constraintTypeInput" onchange="document.getElementById(\'constraintRefGroup\').style.display=this.value===\'FOREIGN KEY\'?\'\':\'none\'"><option value="PRIMARY KEY">PRIMARY KEY</option><option value="FOREIGN KEY">FOREIGN KEY</option><option value="UNIQUE">UNIQUE</option><option value="CHECK">CHECK</option></select></div>';
   html += '<div class="field"><label>Constraint Name (optional)</label><input id="constraintNameInput" placeholder="pk_users"></div>';
   html += '<div class="field"><label>Columns (comma-separated)</label><input id="constraintColsInput" value="'+state.columns.filter(function(c){return c.name.trim();}).map(function(c){return c.name.trim();}).join(', ')+'"></div>';
-  html += '<div class="field"><label>Reference Table (FK only)</label><input id="constraintRefTable" placeholder="ref_table"></div>';
-  html += '<div class="field"><label>Reference Columns</label><input id="constraintRefCols" placeholder="id"></div>';
+  html += '<div id="constraintRefGroup" style="display:none"><div class="field"><label>Reference Table</label><input id="constraintRefTable" placeholder="ref_table"></div><div class="field"><label>Reference Columns</label><input id="constraintRefCols" placeholder="id"></div></div>';
+  html += '<div class="field"><label>Check Expression (CHECK only)</label><input id="constraintCheckExpr" placeholder="amount > 0"></div>';
   showModal('Add Constraint', html, function() {
     var type = document.getElementById('constraintTypeInput').value;
     var cols = document.getElementById('constraintColsInput').value.split(',').map(function(s){return s.trim();}).filter(Boolean);
     if (!cols.length) { showToast('Specify at least one column','error'); return; }
+    var constraint = { type: type, columns: cols, name: document.getElementById('constraintNameInput').value.trim() || '' };
+    if (type === 'FOREIGN KEY') {
+      constraint.refTable = document.getElementById('constraintRefTable').value.trim();
+      constraint.refColumns = document.getElementById('constraintRefCols').value.split(',').map(function(s){return s.trim();}).filter(Boolean);
+      if (!constraint.refTable || !constraint.refColumns.length) { showToast('Reference table and columns required for FK','error'); return; }
+    }
+    if (type === 'CHECK') {
+      constraint.checkExpression = document.getElementById('constraintCheckExpr').value.trim();
+      if (!constraint.checkExpression) { showToast('Check expression required','error'); return; }
+    }
+    state.constraints.push(constraint);
+    renderTableDesigner();
     showToast('Constraint added: '+type+' ('+cols.join(',')+')','success');
+    onDesignChange();
   });
 }
 

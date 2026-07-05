@@ -30,10 +30,11 @@
   "dependencies": {
     "commander": "^11.0.0",
     "express": "^4.21.0",
-    "pg": "^8.13.0",
+    "mssql": "^11.0.0",
     "mysql2": "^3.11.0",
-    "sql.js": "^1.10.0",
-    "mssql": "^11.0.0"
+    "pg": "^8.13.0",
+    "puppeteer-core": "^25.3.0",
+    "sql.js": "^1.10.0"
   },
   "engines": {
     "node": ">=18.0.0"

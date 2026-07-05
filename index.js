@@ -4,7 +4,7 @@
  * schema-builder — CLI entry point & Express router
  * 
  * Usage:
- *   node index.js --serve              Start web server on port 3005
+ *   node index.js --serve              Start web server on port 4005
  *   node index.js --json '{"...'       Generate DDL from JSON design
  *   node index.js --file design.json   Generate DDL from JSON file
  *   node index.js --interactive        Interactive table designer (CLI)
