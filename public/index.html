@@ -363,10 +363,46 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
           </div>
           <div class="preview-content" id="previewContent">
             <div class="sql-grid" id="sqlGrid">
-              <div class="sql-pane"><h3><span class="dot" style="background:#336791"></span>PostgreSQL</h3><pre id="sqlPostgresql">-- Click "Generate SQL" to preview</pre></div>
-              <div class="sql-pane"><h3><span class="dot" style="background:#f29111"></span>MySQL</h3><pre id="sqlMysql">-- Click "Generate SQL" to preview</pre></div>
-              <div class="sql-pane"><h3><span class="dot" style="background:#003b57"></span>SQLite</h3><pre id="sqlSqlite">-- Click "Generate SQL" to preview</pre></div>
-              <div class="sql-pane"><h3><span class="dot" style="background:#cc2927"></span>MSSQL</h3><pre id="sqlMssql">-- Click "Generate SQL" to preview</pre></div>
+              <div class="sql-pane"><h3><span class="dot" style="background:#336791"></span>PostgreSQL</h3><pre id="sqlPostgresql">CREATE TABLE "public"."users" (  "user_id" SERIAL  NOT NULL PRIMARY KEY,
+  "username" VARCHAR(100)  NOT NULL UNIQUE,
+  "email" VARCHAR(255)  NOT NULL UNIQUE,
+  "profile_pic" VARCHAR(500)  NULL DEFAULT NULL,
+  "role_id" INTEGER  NULL,
+  "is_active" BOOLEAN  NOT NULL DEFAULT TRUE,
+  "created_at" TIMESTAMP  NOT NULL DEFAULT NOW(),
+  UNIQUE ("username"),
+  UNIQUE ("email"),
+  FOREIGN KEY ("role_id") REFERENCES "public"."roles" ("id") ON DELETE SET NULL ON UPDATE CASCADE);</pre></div>
+              <div class="sql-pane"><h3><span class="dot" style="background:#f29111"></span>MySQL</h3><pre id="sqlMysql">CREATE TABLE `users` (  `user_id` INT AUTO_INCREMENT  NOT NULL PRIMARY KEY,
+  `username` VARCHAR(100)  NOT NULL UNIQUE,
+  `email` VARCHAR(255)  NOT NULL UNIQUE,
+  `profile_pic` VARCHAR(500)  NULL DEFAULT NULL,
+  `role_id` INT  NULL,
+  `is_active` TINYINT(1)  NOT NULL DEFAULT 1,
+  `created_at` DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (`username`),
+  UNIQUE (`email`),
+  FOREIGN KEY (`role_id`) REFERENCES `public`.`roles` (`id`) ON DELETE SET NULL ON UPDATE CASCADE);</pre></div>
+              <div class="sql-pane"><h3><span class="dot" style="background:#003b57"></span>SQLite</h3><pre id="sqlSqlite">CREATE TABLE "users" (  "user_id" INTEGER  NOT NULL PRIMARY KEY,
+  "username" TEXT  NOT NULL UNIQUE,
+  "email" TEXT  NOT NULL UNIQUE,
+  "profile_pic" TEXT  NULL DEFAULT NULL,
+  "role_id" INTEGER  NULL,
+  "is_active" INTEGER  NOT NULL DEFAULT 1,
+  "created_at" TEXT  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE ("username"),
+  UNIQUE ("email"),
+  FOREIGN KEY ("role_id") REFERENCES "public"."roles" ("id") ON DELETE SET NULL ON UPDATE CASCADE);</pre></div>
+              <div class="sql-pane"><h3><span class="dot" style="background:#cc2927"></span>MSSQL</h3><pre id="sqlMssql">CREATE TABLE [public].[users] (  [user_id] INT IDENTITY(1,1)  NOT NULL PRIMARY KEY,
+  [username] NVARCHAR(100)  NOT NULL UNIQUE,
+  [email] NVARCHAR(255)  NOT NULL UNIQUE,
+  [profile_pic] NVARCHAR(500)  NULL DEFAULT NULL,
+  [role_id] INT  NULL,
+  [is_active] BIT  NOT NULL DEFAULT 1,
+  [created_at] DATETIME2  NOT NULL DEFAULT GETDATE(),
+  UNIQUE ([username]),
+  UNIQUE ([email]),
+  FOREIGN KEY ([role_id]) REFERENCES [public].[roles] ([id]) ON DELETE SET NULL ON UPDATE CASCADE);</pre></div>
             </div>
             <div class="build-output" id="buildOutput" style="display:none"><div id="buildResults"></div></div>
             <div class="explain-output" id="explainOutput" style="display:none"><div id="explainResults"></div></div>
@@ -550,6 +586,7 @@ body::before { content: ''; position: fixed; inset: 0; background-image: linear-
 <script>
 // --- Helpers -----------------------------------------------
 function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function escapeJs(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
 // --- Advanced Error Handler --------------------------------
 var AppErrors = { log:[], maxLog:50, handlerInstalled:false };
@@ -609,7 +646,7 @@ function withErrorHandling(fn, context) {
 }
 
 // --- State ------------------------------------------------
-const state = { columns: [], constraints: [], isCodeType: false, codeBody: '' };
+const state = { columns: [], constraints: [], isCodeType: false, codeBody: '', _debounce: null, _activeTreeNode: null };
 const ENGINE_KEYS = ['postgresql', 'mysql', 'sqlite', 'mssql'];
 const CODE_TYPES = ['VIEW', 'FUNCTION', 'PROCEDURE', 'TRIGGER'];
 
@@ -662,18 +699,23 @@ function treeFindParent(id, nodes, parent) {
   return null;
 }
 function treeShowModal(title, bodyHtml, onConfirm, confirmLabel, confirmClass) {
-  const overlay = document.getElementById('modalOverlay');
-  const content = document.getElementById('modalContent');
   confirmLabel = confirmLabel||'Create'; confirmClass = confirmClass||'';
-  content.innerHTML = '<h2>'+title+'</h2>'+bodyHtml+'<div class="modal-actions"><button class="btn" onclick="treeCloseModal()">Cancel</button><button class="btn btn-primary '+confirmClass+'" id="modalConfirmBtn">'+confirmLabel+'</button></div>';
-  overlay.style.display = 'flex';
-  document.getElementById('modalConfirmBtn').onclick = function() {
-    if (onConfirm) { const r = onConfirm(); if (r !== false) treeCloseModal(); }
-    else treeCloseModal();
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  document.getElementById('modalConfirm').textContent = confirmLabel;
+  document.getElementById('modalConfirm').className = 'btn btn-primary '+confirmClass;
+  document.getElementById('modalConfirm').style.display = '';
+  document.getElementById('modalConfirm').onclick = function() {
+    if (onConfirm) { const r = onConfirm(); if (r !== false) closeModal(); }
+    else closeModal();
   };
-  setTimeout(function(){ const fi = content.querySelector('input,select'); if (fi) fi.focus(); }, 100);
+  document.getElementById('modalCancel').style.display = '';
+  document.getElementById('modalCancel').onclick = closeModal;
+  document.getElementById('modalClose').onclick = closeModal;
+  document.getElementById('modalOverlay').style.display = '';
+  setTimeout(function(){ const fi = document.getElementById('modalBody').querySelector('input,select'); if (fi) fi.focus(); }, 100);
 }
-function treeCloseModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+function treeCloseModal() { closeModal(); }
 function treeAddDatabase() {
   treeShowModal('? New Database Template', '<div class="field"><label>Display Name</label><input id="modalDbName" value="My Database"></div><div class="field"><label>Engine</label><select id="modalDbEngine"><option value="postgresql">PostgreSQL</option><option value="mysql">MySQL</option><option value="sqlite">SQLite</option><option value="mssql">MSSQL</option></select></div><div class="field"><label>Host</label><input id="modalDbHost" value="localhost"></div><div class="field" style="display:flex;gap:8px"><div style="flex:1"><label>Port</label><input id="modalDbPort" value="5432"></div><div style="flex:2"><label>Database</label><input id="modalDbNameDb" value="postgres"></div></div><div class="field" style="display:flex;gap:8px"><div style="flex:1"><label>User</label><input id="modalDbUser" value="postgres"></div><div style="flex:1"><label>Password</label><input id="modalDbPass" type="password" value=""></div></div>',
     function() {
@@ -1135,7 +1177,7 @@ function initQBE() {
     qbeState.tables = [{name:'users',alias:'u',schema:'public',key:'public.users.1'},{name:'orders',alias:'o',schema:'public',key:'public.orders.2'}];
     qbeState.joins = [{type:'INNER',condition:'users.id = orders.user_id'}];
     qbeState.whererows = [{field:'users.is_active',operator:'=',value:'TRUE',logic:'AND',expression:''}];
-    qbeState.selectedCols = [{tableKey:'public.users',columnName:'id',alias:'',expression:''},{tableKey:'public.users',columnName:'username',alias:'',expression:''},{tableKey:'public.orders',columnName:'total',alias:'',expression:''}];
+    qbeState.selectedCols = [{tableKey:'public.users.1',columnName:'id',alias:'',expression:''},{tableKey:'public.users.1',columnName:'username',alias:'',expression:''},{tableKey:'public.orders.2',columnName:'total',alias:'',expression:''}];
   }
   qbeRenderCanvas();
 }
@@ -1161,7 +1203,7 @@ function qbeRenderCanvas() {
             (tbl.columns||[]).forEach(function(col) {
               var isSelected = selCols.some(function(c){return c.columnName===col.name;});
               var cls = (isSelected?' selected':'')+'';
-              html += '<span class="col-chip'+cls+'" onclick="qbeToggleColSelect('+i+',\''+escapeHtml(col.name)+'\')" title="'+escapeHtml(col.type||'')+'">'+escapeHtml(col.name)+'</span>';
+              html += '<span class="col-chip'+cls+'" onclick="qbeToggleColSelect('+i+',\''+escapeJs(col.name)+'\')" title="'+escapeHtml(col.type||'')+'">'+escapeHtml(col.name)+'</span>';
             });
           }
         });
@@ -1243,7 +1285,7 @@ function qbeUpdateAlias(index, alias) {
 
 function qbeToggleColSelect(tblIndex, colName) {
   var t = qbeState.tables[tblIndex]; if (!t) return;
-  var key = t.schema + '.' + t.name;
+  var key = t.key;
   var idx = qbeState.selectedCols.findIndex(function(c){return c.tableKey===key&&c.columnName===colName;});
   if (idx >= 0) { qbeState.selectedCols.splice(idx, 1); }
   else { qbeState.selectedCols.push({tableKey:key, columnName:colName, alias:'', expression:''}); }
@@ -1513,7 +1555,7 @@ function qbeRenderTableBrowser() {
     html += '<div class="qbe-schema"><div class="qbe-schema-header" onclick="qbeToggleSchema(this)"><span class="arrow open">&#x25B6;</span><span>'+escapeHtml(schema.schema)+'</span><span class="scount">('+schemaTables.length+')</span></div><div class="qbe-schema-tables">';
     schemaTables.forEach(function(table) {
       var isActive = qbeState.tables.some(function(t){return t.schema===schema.schema&&t.name===table.name;});
-      html += '<div class="qbe-table-item '+(isActive?'active':'')+'" draggable="true" ondragstart="qbeDragStart(event,\''+escapeHtml(schema.schema)+'\',\''+escapeHtml(table.name)+'\')" onclick="qbeAddTableToQuery(\''+escapeHtml(schema.schema)+'\',\''+escapeHtml(table.name)+'\')"><span class="ticon">T</span><span class="tname">'+escapeHtml(table.name)+'</span><span class="tadd">'+(isActive?'&#x2713;':'+')+'</span></div>';
+      html += '<div class="qbe-table-item '+(isActive?'active':'')+'" draggable="true" ondragstart="qbeDragStart(event,\''+escapeJs(schema.schema)+'\',\''+escapeJs(table.name)+'\')" onclick="qbeAddTableToQuery(\''+escapeJs(schema.schema)+'\',\''+escapeJs(table.name)+'\')"><span class="ticon">T</span><span class="tname">'+escapeHtml(table.name)+'</span><span class="tadd">'+(isActive?'&#x2713;':'+')+'</span></div>';
       html += '<div class="qbe-columns" id="qbeCols_'+escapeHtml(schema.schema)+'_'+escapeHtml(table.name)+'">'+
         table.columns.slice(0,10).map(function(col){return '<div class="qbe-col-item"><span>'+escapeHtml(col.name)+'</span><span class="col-type">:'+col.type+'</span></div>';}).join('')+
         (table.columns.length>10?'<div style="padding:2px 4px;font-size:9px;color:var(--text-muted)">+'+(table.columns.length-10)+' more...</div>':'')+
@@ -1621,9 +1663,11 @@ function generateER() {
   showToast('ER diagram generated from '+tables.length+' tables','success');
 }
 
+function erCss(v) { try { return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||'#1a1a2e'; } catch(e) { return '#1a1a2e'; } }
 function renderERDiagram(container) {
   var tables = erTableData;
   if (!tables.length) return;
+  var erColors = { cyan:erCss('--cyan'), surface:erCss('--surface'), border:erCss('--border'), accent:erCss('--accent'), text:erCss('--text'), muted:erCss('--text-muted'), bg:erCss('--bg') };
   var x = 30, y = 30, svgW = 1200, svgH = 400, placed = {};
   var maxPerRow = 5, gapX = 40, gapY = 50, idx = 0;
   var needsAutoArrange = false;
@@ -1660,7 +1704,7 @@ function renderERDiagram(container) {
       var srcX = srcP.x + erColW, srcY = srcP.y + srcP.h/2;
       var dstX = dstP.x, dstY = dstP.y + dstP.h/2;
       var cpx = (srcX + dstX) / 2;
-      conSvg += '<path d="M'+srcX+','+srcY+' C'+cpx+','+srcY+' '+cpx+','+dstY+' '+dstX+','+dstY+'" fill="none" stroke="var(--cyan)" stroke-width="1" opacity="0.6" marker-end="url(#erArrow)"/>';
+      conSvg += '<path d="M'+srcX+','+srcY+' C'+cpx+','+srcY+' '+cpx+','+dstY+' '+dstX+','+dstY+'" fill="none" stroke="'+erColors.cyan+'" stroke-width="1" opacity="0.6" marker-end="url(#erArrow)"/>';
     });
   });
   // Tables (on top)
@@ -1670,21 +1714,21 @@ function renderERDiagram(container) {
     var h = p.h;
     var id = 'er-tbl-' + t.name.replace(/[^a-zA-Z0-9]/g, '_');
     tblSvg += '<g class="er-table" id="'+id+'" data-name="'+escapeHtml(t.name)+'" transform="translate('+p.x+','+p.y+')" style="cursor:grab">';
-    tblSvg += '<rect class="er-table-bg" width="'+erColW+'" height="'+h+'" rx="4" fill="var(--surface)" stroke="var(--border)" stroke-width="1" filter="url(#erShadow)"/>';
-    tblSvg += '<rect class="er-table-header" width="'+erColW+'" height="'+erHeaderH+'" rx="4" fill="var(--accent)" opacity="0.15"/>';
-    tblSvg += '<text x="8" y="'+(erHeaderH-8)+'" fill="var(--accent)" font-weight="bold" font-size="12">'+escapeHtml(t.name)+'</text>';
+    tblSvg += '<rect class="er-table-bg" width="'+erColW+'" height="'+h+'" rx="4" fill="'+erColors.surface+'" stroke="'+erColors.border+'" stroke-width="1" filter="url(#erShadow)"/>';
+    tblSvg += '<rect class="er-table-header" width="'+erColW+'" height="'+erHeaderH+'" rx="4" fill="'+erColors.accent+'" opacity="0.15"/>';
+    tblSvg += '<text x="8" y="'+(erHeaderH-8)+'" fill="'+erColors.accent+'" font-weight="bold" font-size="12">'+escapeHtml(t.name)+'</text>';
     (t.columns||[]).forEach(function(col, ci){
       var cy = erHeaderH + 4 + ci * erRowH;
       var pk = col.primaryKey || col.isPrimaryKey;
       var fk = (t.foreignKeys||[]).some(function(f){ return f.column === col.name; });
       var label = (pk ? '\u{1F511} ' : '') + (fk ? '\u{1F517} ' : '') + escapeHtml(col.name);
-      tblSvg += '<text x="8" y="'+(cy+erRowH-4)+'" fill="var(--text)">'+label+'</text>';
-      tblSvg += '<text x="'+(erColW-8)+'" y="'+(cy+erRowH-4)+'" fill="var(--text-muted)" text-anchor="end" font-size="10">'+escapeHtml(col.type)+'</text>';
+      tblSvg += '<text x="8" y="'+(cy+erRowH-4)+'" fill="'+erColors.text+'">'+label+'</text>';
+      tblSvg += '<text x="'+(erColW-8)+'" y="'+(cy+erRowH-4)+'" fill="'+erColors.muted+'" text-anchor="end" font-size="10">'+escapeHtml(col.type)+'</text>';
     });
     tblSvg += '</g>';
   });
-  var svg = '<svg id="erSvg" width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:var(--bg);font-family:monospace;font-size:11px">';
-  svg += '<defs><marker id="erArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="none" stroke="var(--cyan)" stroke-width="1"/></marker><filter id="erShadow"><feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/></filter></defs>';
+  var svg = '<svg id="erSvg" width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:'+erColors.bg+';font-family:monospace;font-size:11px">';
+  svg += '<defs><marker id="erArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="none" stroke="'+erColors.cyan+'" stroke-width="1"/></marker><filter id="erShadow"><feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/></filter></defs>';
   svg += '<g id="erConnections">'+conSvg+'</g><g id="erTables">'+tblSvg+'</g></svg>';
   container.innerHTML = svg;
   // Wire drag handlers
@@ -1703,9 +1747,8 @@ function erMouseDown(e) {
   var svgRect = svg.getBoundingClientRect();
   var scaleX = parseInt(svg.getAttribute('width')) / svgRect.width;
   var scaleY = parseInt(svg.getAttribute('height')) / svgRect.height;
-  // Parse current transform
   var m = g.getAttribute('transform') || 'translate(0,0)';
-  var match = m.match(/translate\(([\d.]+),([\d.]+)\)/);
+  var match = m.match(/translate\(([-\d.]+),([-\d.]+)\)/);
   var ox = match ? parseFloat(match[1]) : 0;
   var oy = match ? parseFloat(match[2]) : 0;
   erDragging = { name:name, g:g, startX:e.clientX, startY:e.clientY, origX:ox, origY:oy, svg:svg, scaleX:scaleX, scaleY:scaleY };
@@ -1728,9 +1771,8 @@ function erMouseUp(e) {
   document.removeEventListener('mousemove', erMouseMove);
   document.removeEventListener('mouseup', erMouseUp);
   erDragging.g.style.cursor = 'grab';
-  // Save position
   var m = erDragging.g.getAttribute('transform');
-  var match = m.match(/translate\(([\d.]+),([\d.]+)\)/);
+  var match = m.match(/translate\(([-\d.]+),([-\d.]+)\)/);
   if (match) {
     erPositions[erDragging.name] = { x:parseFloat(match[1]), y:parseFloat(match[2]) };
     erSavePositions();
@@ -1744,12 +1786,12 @@ function erUpdateConnections() {
   if (!conG) return;
   var paths = [];
   var tables = erTableData;
-  // Recalculate all positions from transform attributes
+  var erColors = { cyan:erCss('--cyan'), surface:erCss('--surface'), border:erCss('--border'), accent:erCss('--accent'), text:erCss('--text'), muted:erCss('--text-muted'), bg:erCss('--bg') };
   var positions = {};
   svg.querySelectorAll('.er-table').forEach(function(g){
     var name = g.getAttribute('data-name');
     var m = g.getAttribute('transform') || 'translate(0,0)';
-    var match = m.match(/translate\(([\d.]+),([\d.]+)\)/);
+    var match = m.match(/translate\(([-\d.]+),([-\d.]+)\)/);
     var x = match ? parseFloat(match[1]) : 0;
     var y = match ? parseFloat(match[2]) : 0;
     var bg = g.querySelector('.er-table-bg');
@@ -1767,7 +1809,7 @@ function erUpdateConnections() {
     });
   });
   conG.innerHTML = paths.map(function(p){
-    return '<path d="'+p.d+'" fill="none" stroke="var(--cyan)" stroke-width="1" opacity="0.6" marker-end="url(#erArrow)"/>';
+    return '<path d="'+p.d+'" fill="none" stroke="'+erColors.cyan+'" stroke-width="1" opacity="0.6" marker-end="url(#erArrow)"/>';
   }).join('');
 }
 
@@ -1863,7 +1905,9 @@ function showModal(title, contentHtml, confirmCb) {
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalBody').innerHTML = contentHtml;
   document.getElementById('modalConfirm').style.display = confirmCb ? '' : 'none';
-  document.getElementById('modalConfirm').onclick = function(){ closeModal(); if (confirmCb) confirmCb(); };
+  document.getElementById('modalConfirm').onclick = function(){ if (!confirmCb || confirmCb() !== false) closeModal(); };
+  document.getElementById('modalClose').onclick = closeModal;
+  document.getElementById('modalCancel').onclick = closeModal;
   document.getElementById('modalOverlay').style.display = '';
 }
 function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }

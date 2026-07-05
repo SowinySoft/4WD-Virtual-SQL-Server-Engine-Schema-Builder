@@ -1,6 +1,7 @@
 # 4WD Virtual SQL Server Engine — Schema Builder (Agent Memory)
 
 **Version**: 1.0.0 — Standalone Express web server for the Virtual SQL Server Engine pattern.
+**Current**: Post-audit-fix-v2 — 8 critical bugs fixed across client and server. All 65 tests pass. Server on port 4005.
 
 ## Overview
 
@@ -106,6 +107,7 @@ This is commit 1 — standalone project forked from Hexagon Web Framework v3.14.
 | 2026-07-05 | `330c285` | Deep audit: fixed 13 bugs (MSSQL mat-view, config typeMappings sync, Add Constraint no-op, builder.test.js, MSSQL QBE quoting, NVARCHAR/NCHAR map, tree sync, execSync dead import, MSSQL column comments, FK schema prefix, TINYINT, CLI port, QBE groupBy). 2 low items verified as non-issues. 65 tests pass. |
 | 2026-07-05 | (current) | ER diagram enhancements: draggable entities (mousedown/move/up + localStorage positions), auto-arrange grid layout, FK relationship lines (cubic Bezier curves with live drag update), 🔑 PK + 🔗 FK column indicators, arrow markers. Export: PNG (2x canvas render), PDF (print dialog), SVG, JSON save/load (.erd.json). |
 | 2026-07-05 | `qbe-ms-access-redesign` | QBE redesign from horizontal section layout to proper MS Access-style vertical layout: relationship pane (top) with table cards, column checkboxes, PK/FK indicators; design grid (bottom) with column-oriented Field/Total/Sort/Show/Criteria/or: rows; bottom SQL/Results tabs. Replaced old `qbeState` model (`whererows[]`, `groupByRows[]`, `havingRows[]`, `orderByRows[]`, `selectedCols[]`) with `gridRows[]` (each row = one column with all properties). Removed all old rendering functions. All 65 tests pass. |
+| 2026-07-05 | `audit-fix-v2` | Deep audit found 40+ issues across server (6 libs) and client (index.html). Fixed 8 critical bugs: (1) `localStorage.removeItem('schemaBuilderTree')` in `init()` removed — tree persistence restored. (2) Modal close/cancel buttons wired in `showModal()` — × and Cancel now work. (3) `treeShowModal()` refactored to use shared modal DOM — no longer destroys elements needed by `showModal()`. (4) `state._debounce` and `state._activeTreeNode` initialized to avoid latent errors. (5) ER diagram SVG export uses inline hex colors instead of `var(--...)` CSS custom properties — exports now render colors in all formats (SVG/PNG/PDF). (6) ER drag regex updated to handle negative coordinates (`[-\d.]+`). (7) QBE key-format mismatch fixed — `qbeToggleColSelect()` uses `t.key` (with counter) instead of `t.schema+'.'+t.name`, matching `qbeRemoveTable()` filter. (8) XSS via `escapeHtml()` in onclick/ondragstart JS string contexts fixed — new `escapeJs()` escapes `'` and `\` for JS-in-HTML-attribute safety. Server: `quoteIdent()` now escapes special chars inside quoted identifiers (MSSQL `]` → `]]`, MySQL `` ` `` → ``` `` ```, PG/SQLite `"` → `""`). MSSQL `COMMENT ON SCHEMA` and `COMMENT ON TABLE` changed to `sp_addextendedproperty` (valid T-SQL). All 65 tests pass. |
 
 ## Deployment (Railway)
 
@@ -120,15 +122,9 @@ This is commit 1 — standalone project forked from Hexagon Web Framework v3.14.
 - **Design layer has zero DB driver dependencies**: `designer.js`, `translator.js`, `ddl-generator.js`, `templates.js` never import `pg`, `mysql2`, `sql.js`, or `mssql`. Only `builder.js` imports database drivers.
 - **Dialect translation built into the generator**: `ENGINE_TYPE_MAP` in `translator.js` maps 30+ canonical types to each engine's syntax. When `generateDDL()` calls `resolveColumnType()`, the translation happens inline — no separate dialect translation step needed.
 - **VSSE pattern documented**: See `docs/VIRTUAL_SQL_SERVER_ENGINE_PAPER.md` for the full concept paper describing how the Virtual SQL Server Engine pattern decouples schema design from database connectivity.
-
-## QBE Architecture (MS Access-style)
-
-- **Relationship Pane (top)**: Table cards rendered by `qbeRenderRelPane()`. Each card shows columns with checkboxes (PK = gold border, FK = cyan border). Clicking a checkbox toggles the column into/out of `gridRows[]`. JOIN editors appear below the cards with type select + condition input.
-- **Design Grid (bottom)**: Column-oriented MS Access layout. Each `gridRow` in `qbeState.gridRows[]` represents one column — properties (Field, Table, Total, Sort, Show, Criteria, or:) are rendered as table **rows**, not columns. This transposes the old row-per-field layout. The grid uses a `<table>` with sticky property labels on the left.
-- **Data flow**: `gridRows[]` → `qbeGenerateNow()` builds a payload with `{columns, where, groupBy, orderBy}` matching the server-side `/api/design/query-build` API expectations. Criteria entries auto-detect operator prefixes (`=`, `!=`, `>`, `LIKE`, etc.). The Total column maps to GROUP BY (Group By/Sum/Avg/Min/Max/Count).
-- **Old model removed**: `whererows[]`, `groupByRows[]`, `havingRows[]`, `orderByRows[]`, `selectedCols[]`, `union`, `limit`, `offset` — all replaced by `gridRows[]` + `showTotals` + `orRowCount`.
-- **Bottom tabs**: SQL (with Copy/Export) and Results (with table display). Results panel uses `qbeBottomResults` with `qbeSwitchBottomTab()`.
-
+- **Two-level escaping for HTML output**: `escapeHtml(s)` for HTML attribute/text content (produces HTML entities), `escapeJs(s)` for values embedded in JS string literals within onclick/ondragstart (escapes `'` and `\` to avoid JS injection). The old pattern of using `escapeHtml` in onclick attributes was vulnerable to XSS because the browser decodes `&#39;` back to `'` before JS evaluation.
+- **ER diagram export uses inline hex colors**: Instead of `var(--cyan)` etc. in SVG presentation attributes, `erCss('--cyan')` computes the actual runtime CSS value at generation time via `getComputedStyle`. This ensures exported SVGs render colors correctly in standalone viewers and PNG/PDF exports.
+- **Shared modal DOM**: Both `showModal()` and `treeShowModal()` use the same `modalTitle`/`modalBody`/`modalConfirm`/`modalCancel` elements. If `treeShowModal` replaced `modalContent.innerHTML`, subsequent `showModal()` calls would fail because the elements no longer exist. The refactored `treeShowModal()` now delegates to the shared elements.
 ## License
 
 **All Rights Reserved.** © SowinySoft — sowinysoft@gmail.com
